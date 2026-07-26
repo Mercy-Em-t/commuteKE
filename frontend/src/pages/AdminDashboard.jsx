@@ -72,8 +72,8 @@ function AdminDashboard() {
                 </header>
 
                 {/* Tabs Navigation */}
-                <div className="flex gap-4 mb-8">
-                    {['FLEET', 'PERSONNEL', 'ROUTES'].map(tab => (
+                <div className="flex flex-wrap gap-4 mb-8">
+                    {['FLEET', 'PERSONNEL', 'ROUTES', 'LEGAL', 'ANALYTICS'].map(tab => (
                         <button 
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -299,6 +299,70 @@ function AdminDashboard() {
                                         Make Route Live
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'LEGAL' && (
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="mb-8 border-b pb-6 border-slate-100">
+                            <h2 className="text-2xl font-black text-slate-800">Legal & Contracts</h2>
+                            <p className="text-slate-500 mt-1">Manage Terms of Service, SLAs, and Employment Contracts.</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl hover:shadow-md transition-shadow cursor-pointer">
+                                <h3 className="font-bold text-slate-800 mb-2">Driver Agreements</h3>
+                                <p className="text-sm text-slate-500 mb-4">Standard contract for new crew onboarding.</p>
+                                <span className="text-sky-600 font-bold text-sm">Review Document &rarr;</span>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl hover:shadow-md transition-shadow cursor-pointer">
+                                <h3 className="font-bold text-slate-800 mb-2">Terms of Service</h3>
+                                <p className="text-sm text-slate-500 mb-4">Passenger liability and data privacy policy.</p>
+                                <span className="text-sky-600 font-bold text-sm">Review Document &rarr;</span>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl hover:shadow-md transition-shadow cursor-pointer">
+                                <h3 className="font-bold text-slate-800 mb-2">Fleet SLAs</h3>
+                                <p className="text-sm text-slate-500 mb-4">Maintenance and uptime agreements.</p>
+                                <span className="text-sky-600 font-bold text-sm">Review Document &rarr;</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'ANALYTICS' && (
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="mb-8 border-b pb-6 border-slate-100">
+                            <h2 className="text-2xl font-black text-slate-800">System Analytics</h2>
+                            <p className="text-slate-500 mt-1">High-level visualization of operations and platform health.</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-xl">
+                                <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-1">Active Trips Today</p>
+                                <p className="text-4xl font-black text-emerald-900">142</p>
+                                <p className="text-sm text-emerald-700 mt-2 font-medium">+12% from yesterday</p>
+                            </div>
+                            <div className="bg-sky-50 border border-sky-200 p-6 rounded-xl">
+                                <p className="text-xs font-black text-sky-600 uppercase tracking-widest mb-1">Passenger Volume</p>
+                                <p className="text-4xl font-black text-sky-900">4,591</p>
+                                <p className="text-sm text-sky-700 mt-2 font-medium">Tracking via web app</p>
+                            </div>
+                            <div className="bg-amber-50 border border-amber-200 p-6 rounded-xl">
+                                <p className="text-xs font-black text-amber-600 uppercase tracking-widest mb-1">Ad Impressions</p>
+                                <p className="text-4xl font-black text-amber-900">12.4k</p>
+                                <p className="text-sm text-amber-700 mt-2 font-medium">Generating local revenue</p>
+                            </div>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 h-64 flex flex-col items-center justify-center relative overflow-hidden">
+                            <p className="font-bold text-slate-500 mb-4 relative z-10">Peak Hours Visualization (Mock)</p>
+                            <div className="absolute bottom-0 left-0 w-full flex items-end justify-around px-8 gap-2 h-32 opacity-50">
+                                <div className="w-full bg-sky-200 rounded-t-sm h-12"></div>
+                                <div className="w-full bg-sky-300 rounded-t-sm h-24"></div>
+                                <div className="w-full bg-sky-400 rounded-t-sm h-full"></div>
+                                <div className="w-full bg-sky-300 rounded-t-sm h-16"></div>
+                                <div className="w-full bg-sky-500 rounded-t-sm h-20"></div>
+                                <div className="w-full bg-sky-600 rounded-t-sm h-full"></div>
+                                <div className="w-full bg-sky-200 rounded-t-sm h-8"></div>
                             </div>
                         </div>
                     </div>
