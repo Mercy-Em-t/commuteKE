@@ -19,20 +19,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from pydantic import BaseModel
+from mail_client import send_inquiry_email
+
 # Background CRON Task (APScheduler alternative using asyncio for local dev)
 async def generate_daily_trips():
     while True:
-        # Check if it's 3:00 AM (Mocking the check here)
         now = datetime.now()
-        print(f"[{now.strftime('%H:%M:%S')}] CRON TICK: Checking if daily trips need to be generated...")
-        
-        # In production, this would query Supabase for the Timetable and insert empty rows into active_trips
-        await asyncio.sleep(3600) # Sleep for an hour
+        await asyncio.sleep(3600)
 
 @app.on_event("startup")
 async def startup_event():
     print("Starting background CRON task...")
     asyncio.create_task(generate_daily_trips())
+
+class InquiryRequest(BaseModel):
+    name: str
+    email: str
+    type: str
+    message: str
+
+@app.post("/api/v1/inquiry")
+async def submit_inquiry(req: InquiryRequest):
+    result = send_inquiry_email(
+        user_name=req.name,
+        user_email=req.email,
+        inquiry_type=req.type,
+        message=req.message
+    )
+    if not result.get("success"):
+        return {"status": "error", "message": "Failed to dispatch email"}
+    return {"status": "success", "message": "Inquiry sent successfully"}
 
 # Secret key for HMAC webhook verification
 WEBHOOK_SECRET = os.getenv("TM_SAVANNAH_WEBHOOK_SECRET", "super-secret-tm-savannah-key")
