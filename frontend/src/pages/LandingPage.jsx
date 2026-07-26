@@ -8,7 +8,8 @@ function LandingPage() {
         e.preventDefault();
         setStatus('sending');
         try {
-            const res = await fetch('http://127.0.0.1:8001/api/v1/inquiry', {
+            const apiUrl = import.meta.env.DEV ? 'http://127.0.0.1:8001' : '';
+            const res = await fetch(`${apiUrl}/api/v1/inquiry`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -28,6 +29,7 @@ function LandingPage() {
         <div className="min-h-screen bg-white font-sans flex flex-col">
             {/* Hero Section */}
             <header className="bg-slate-900 text-white p-8 sm:p-16 text-center border-b-8 border-amber-500">
+                <img src="/transy_logo.jpg" alt="Transy Logo" className="mx-auto w-32 h-32 object-cover rounded-full shadow-2xl mb-6 border-4 border-amber-500" />
                 <h1 className="text-4xl sm:text-6xl font-black mb-4">Transy</h1>
                 <p className="text-xl sm:text-2xl text-slate-300 font-light max-w-2xl mx-auto">
                     Custom Commute Management for Saccos and Private Transport.

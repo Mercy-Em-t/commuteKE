@@ -13,7 +13,8 @@ MAIL_SERVER_URL = "https://mail.tmsavannah.com/api/dispatch"
 def get_highway_token() -> str:
     """Generates a short-lived JWT for authenticating with the TM Savannah Mail Server."""
     if not CLIENT_ID or not CLIENT_SECRET:
-        raise ValueError("MAIL_CLIENT_ID or MAIL_SECRET is missing from .env")
+        print("Warning: MAIL_CLIENT_ID or MAIL_SECRET is missing. Simulating token.")
+        return "mock_token"
         
     payload = {
         "client_id": CLIENT_ID,
@@ -36,12 +37,16 @@ def send_inquiry_email(user_name: str, user_email: str, inquiry_type: str, messa
         "message_type": "notification",
         "replyTo": user_email,
         "variables": {
-            "brand_name": "Kiungani TransitOS",
+            "brand_name": "Transy",
             "alert_title": f"New Inquiry: {inquiry_type} from {user_name}",
             "alert_body": f"User Email: {user_email}\n\nMessage:\n{message}",
             "timestamp": str(time.time())
         }
     }
+    
+    if token == "mock_token":
+        print(f"Mock email sent: {body}")
+        return {"success": True, "mock": True}
     
     response = requests.post(
         MAIL_SERVER_URL,
