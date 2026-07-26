@@ -1,2 +1,7 @@
+[project]
+name = "commute-ke"
+version = "0.1.0"
+requires-python = ">=3.9"
+
 [tool.vercel]
-entrypoint = "api/index.py"
+entrypoint = "api.index:app"
