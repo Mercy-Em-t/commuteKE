@@ -55,11 +55,7 @@ export const AuthProvider = ({ children }) => {
 
     const signInWithOtp = async (email) => {
         const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: {
-                // This prevents it from sending a Magic Link URL and strictly sends a 6-digit OTP code
-                shouldCreateUser: false,
-            }
+            email
         });
         return { error };
     };
