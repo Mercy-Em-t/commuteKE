@@ -133,15 +133,18 @@ function PassengerView() {
           {/* Status Section - Bottom half */}
           <div className="p-4 flex flex-col gap-4 bg-slate-50 flex-grow relative z-10 -mt-4 rounded-t-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
             <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-100">
-              <h2 className="font-semibold text-lg mb-3 text-slate-800">Next Departure</h2>
+              <h2 className="font-semibold text-lg mb-3 text-slate-800">Trip Status</h2>
               <div className="bg-sky-50 border border-sky-100 rounded-lg p-3 cursor-pointer hover:bg-sky-100 transition-colors" onClick={() => setShowSchedule(true)}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sky-900 font-bold">Boarding at Green Tank</p>
-                    <p className="text-sm text-sky-700 mt-0.5">Leaving in 10 minutes</p>
-                    <p className="text-xs text-sky-600 mt-1 font-semibold">Direction: To CBD 🏙️</p>
+                    <p className="text-sky-900 font-bold">Kiungani Express &rarr; CBD</p>
+                    <p className="text-sm text-sky-700 mt-1 font-black uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></span>
+                        BOARDING
+                    </p>
+                    <p className="text-xs text-sky-600 mt-1 font-semibold">Bus is stationary. Journey starting soon.</p>
                   </div>
-                  <span className="bg-sky-200 text-sky-800 text-xs px-2 py-1 rounded-full font-semibold animate-pulse">LIVE</span>
+                  <span className="bg-sky-200 text-sky-800 text-xs px-2 py-1 rounded-full font-semibold">LIVE</span>
                 </div>
               </div>
             </div>

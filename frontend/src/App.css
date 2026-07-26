@@ -182,3 +182,4 @@
     border-right-color: var(--border);
   }
 }
+.leaflet-marker-icon { transition: all 1.5s linear; }
