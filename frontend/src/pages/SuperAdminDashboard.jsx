@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../context/AuthContext';
+import { supabase } from '../supabaseClient';
 
 function SuperAdminDashboard() {
     const [users, setUsers] = useState([]);
