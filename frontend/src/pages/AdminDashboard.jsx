@@ -442,16 +442,46 @@ function AdminDashboard() {
                                 <p className="text-sm text-amber-700 mt-2 font-medium">Generating local revenue</p>
                             </div>
                         </div>
-                        <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 h-64 flex flex-col items-center justify-center relative overflow-hidden">
-                            <p className="font-bold text-slate-500 mb-4 relative z-10">Peak Hours Visualization (Mock)</p>
-                            <div className="absolute bottom-0 left-0 w-full flex items-end justify-around px-8 gap-2 h-32 opacity-50">
-                                <div className="w-full bg-sky-200 rounded-t-sm h-12"></div>
-                                <div className="w-full bg-sky-300 rounded-t-sm h-24"></div>
-                                <div className="w-full bg-sky-400 rounded-t-sm h-full"></div>
-                                <div className="w-full bg-sky-300 rounded-t-sm h-16"></div>
-                                <div className="w-full bg-sky-500 rounded-t-sm h-20"></div>
-                                <div className="w-full bg-sky-600 rounded-t-sm h-full"></div>
-                                <div className="w-full bg-sky-200 rounded-t-sm h-8"></div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2 bg-slate-50 rounded-xl border border-slate-200 p-6 h-64 flex flex-col items-center justify-center relative overflow-hidden">
+                                <p className="font-bold text-slate-500 mb-4 relative z-10">Peak Hours Visualization (Mock)</p>
+                                <div className="absolute bottom-0 left-0 w-full flex items-end justify-around px-8 gap-2 h-32 opacity-50">
+                                    <div className="w-full bg-sky-200 rounded-t-sm h-12"></div>
+                                    <div className="w-full bg-sky-300 rounded-t-sm h-24"></div>
+                                    <div className="w-full bg-sky-400 rounded-t-sm h-full"></div>
+                                    <div className="w-full bg-sky-300 rounded-t-sm h-16"></div>
+                                    <div className="w-full bg-sky-500 rounded-t-sm h-20"></div>
+                                    <div className="w-full bg-sky-600 rounded-t-sm h-full"></div>
+                                    <div className="w-full bg-sky-200 rounded-t-sm h-8"></div>
+                                </div>
+                            </div>
+                            
+                            {/* AI Analytical Agent */}
+                            <div className="lg:col-span-1 bg-indigo-50 border border-indigo-200 rounded-xl p-6 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] font-black px-3 py-1 uppercase tracking-widest rounded-bl-lg flex items-center gap-1">
+                                    <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span> AI Analyst
+                                </div>
+                                <h3 className="font-black text-lg text-indigo-900 mb-4 flex items-center gap-2">
+                                    <span>🧠</span> System Recommendations
+                                </h3>
+                                <div className="space-y-4">
+                                    {fleet.filter(v => v.status === 'MAINTENANCE').length > 0 && (
+                                        <div className="bg-white/80 p-3 rounded-lg border border-indigo-100 shadow-sm text-sm">
+                                            <p className="font-bold text-amber-600 mb-1">⚠️ Fleet Deficit</p>
+                                            <p className="text-slate-700 font-medium">You have {fleet.filter(v => v.status === 'MAINTENANCE').length} vehicle(s) in maintenance. Consider re-routing Kiserian Transit to maintain SLA.</p>
+                                        </div>
+                                    )}
+                                    {trips.length > fleet.length && fleet.length > 0 && (
+                                        <div className="bg-white/80 p-3 rounded-lg border border-indigo-100 shadow-sm text-sm">
+                                            <p className="font-bold text-red-600 mb-1">🚨 Capacity Warning</p>
+                                            <p className="text-slate-700 font-medium">There are more active trips ({trips.length}) than available vehicles ({fleet.length}). Expect significant delays.</p>
+                                        </div>
+                                    )}
+                                    <div className="bg-white/80 p-3 rounded-lg border border-indigo-100 shadow-sm text-sm">
+                                        <p className="font-bold text-emerald-600 mb-1">💡 Revenue Opportunity</p>
+                                        <p className="text-slate-700 font-medium">High passenger web-app activity detected. Consider unlocking an additional ad-slot for Local Businesses.</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
