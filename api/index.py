@@ -9,7 +9,9 @@ from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 
-app = FastAPI(title="TM Savannah Transport Gateway", version="1.0.0")
+app = FastAPI()
+app.title = "TM Savannah Transport Gateway"
+app.version = "1.0.0"
 
 app.add_middleware(
     CORSMiddleware,
