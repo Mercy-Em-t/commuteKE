@@ -13,33 +13,40 @@ export const AuthProvider = ({ children }) => {
     const [userRole, setUserRole] = useState(null); // e.g., 'ADMIN' or 'DRIVER'
     const [loading, setLoading] = useState(true);
 
-    const fetchRole = async (userId) => {
+    const fetchRole = async (userId, userEmail) => {
         const { data, error } = await supabase
             .from('user_roles')
             .select('role, tenant_id')
             .eq('user_id', userId)
             .single();
         
-        if (data) {
-            setUserRole(data);
+        let finalRole = data || { role: null, tenant_id: null };
+        
+        // Secure Role check from Supabase
+        if (finalRole.role === 'SYSTEM_ADMIN') {
+            finalRole.isSystemAdmin = true;
+            localStorage.setItem('isSystemAdmin', 'true');
         } else {
-            setUserRole(null);
+            localStorage.setItem('isSystemAdmin', 'false');
         }
+        
+        setUserRole(finalRole.role ? finalRole : null);
     };
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
-            if (session?.user) fetchRole(session.user.id);
+            if (session?.user) fetchRole(session.user.id, session.user.email);
             setLoading(false);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
             if (session?.user) {
-                fetchRole(session.user.id);
+                fetchRole(session.user.id, session.user.email);
             } else {
                 setUserRole(null);
+                localStorage.removeItem('isSystemAdmin');
             }
         });
 

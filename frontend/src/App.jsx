@@ -9,6 +9,7 @@ import RouteSelector from './pages/RouteSelector';
 import Login from './pages/Login';
 import Sandbox from './pages/Sandbox';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { supabase } from './supabaseClient';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
@@ -30,17 +31,12 @@ import routeData from './routeData.json';
 
 const MOCK_ROUTE = routeData;
 
-const MOCK_SCHEDULE = [
-  { id: 1, time: '06:00 AM', status: 'Departed', direction: 'To CBD', busPlate: 'KCD 123X', crew: 'John (0712345678)' },
-  { id: 2, time: '06:30 AM', status: 'Boarding', direction: 'To CBD', busPlate: 'KAB 456Y', crew: 'Peter (0722334455)' },
-  { id: 3, time: '07:00 AM', status: 'Scheduled', direction: 'From CBD', busPlate: 'KCD 123X', crew: 'John (0712345678)' },
-  { id: 4, time: '07:30 AM', status: 'Scheduled', direction: 'To CBD', busPlate: 'KXY 987Z', crew: 'Mike (0733445566)' },
-];
 
 function PassengerView() {
   const [busPosition, setBusPosition] = useState([-1.37072, 36.92078]);
   const [showSchedule, setShowSchedule] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
+  const [liveTrips, setLiveTrips] = useState([]);
   
   // Passenger State
   const [passengerName, setPassengerName] = useState('');
@@ -48,6 +44,16 @@ function PassengerView() {
   const [subscriptionMessage, setSubscriptionMessage] = useState(null);
   
   const today = new Date().toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+
+  // Helper function to extract Lat/Lng from PostGIS WKT Point string
+  const parsePoint = (wkt) => {
+    if (!wkt) return null;
+    const match = wkt.match(/POINT\(([^ ]+) ([^ ]+)\)/);
+    if (match) {
+        return [parseFloat(match[2]), parseFloat(match[1])]; // Leaflet expects [Lat, Lng]
+    }
+    return null;
+  };
 
   useEffect(() => {
     // Check if the passenger is recognized
@@ -58,13 +64,44 @@ function PassengerView() {
       setShowOnboarding(true);
     }
 
-    // Simulate live bus movement along the route
-    let index = 0;
-    const interval = setInterval(() => {
-      setBusPosition(MOCK_ROUTE[index]);
-      index = (index + 1) % MOCK_ROUTE.length;
-    }, 4000);
-    return () => clearInterval(interval);
+    // Fetch initial trips from Supabase
+    const fetchTrips = async () => {
+        const { data, error } = await supabase
+            .from('active_trips')
+            .select('*')
+            .eq('tenant_id', 'kiungani-01')
+            .order('scheduled_departure', { ascending: true });
+        
+        if (data && data.length > 0) {
+            setLiveTrips(data);
+            const active = data.find(t => t.status === 'IN_TRANSIT' || t.status === 'BOARDING') || data[0];
+            if (active && active.current_location) {
+                const pos = parsePoint(active.current_location);
+                if (pos) setBusPosition(pos);
+            }
+        }
+    };
+    fetchTrips();
+
+    // Subscribe to real-time Postgres changes for GPS updates
+    const channel = supabase
+        .channel('public:active_trips')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'active_trips' }, (payload) => {
+            if (payload.new && payload.new.current_location) {
+                const pos = parsePoint(payload.new.current_location);
+                if (pos) setBusPosition(pos);
+            }
+            // Update the liveTrips list
+            setLiveTrips(prev => {
+                const updated = prev.map(t => t.id === payload.new.id ? payload.new : t);
+                return updated;
+            });
+        })
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleSubscribe = () => {
@@ -214,28 +251,31 @@ function PassengerView() {
 
               {!selectedTrip ? (
                 <div className="space-y-3">
-                  {MOCK_SCHEDULE.map((trip) => (
+                  {liveTrips.length === 0 && <p className="text-slate-500 text-center font-bold">No trips currently scheduled.</p>}
+                  {liveTrips.map((trip) => (
                     <div 
                       key={trip.id} 
                       onClick={() => setSelectedTrip(trip)}
                       className="border border-slate-200 rounded-xl p-4 cursor-pointer hover:border-sky-300 hover:shadow-md transition-all group"
                     >
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-black text-lg text-slate-800">{trip.time}</span>
+                        <span className="font-black text-lg text-slate-800">
+                            {new Date(trip.scheduled_departure).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                         <span className={`text-xs px-2 py-1 rounded-md font-bold uppercase tracking-wide
-                          ${trip.status === 'Departed' ? 'bg-slate-100 text-slate-500' : ''}
-                          ${trip.status === 'Boarding' ? 'bg-emerald-100 text-emerald-700 animate-pulse' : ''}
-                          ${trip.status === 'Scheduled' ? 'bg-sky-50 text-sky-600' : ''}
+                          ${trip.status === 'COMPLETED' ? 'bg-slate-100 text-slate-500' : ''}
+                          ${trip.status === 'BOARDING' || trip.status === 'IN_TRANSIT' ? 'bg-emerald-100 text-emerald-700 animate-pulse' : ''}
+                          ${trip.status === 'SCHEDULED' ? 'bg-sky-50 text-sky-600' : ''}
                         `}>
                           {trip.status}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600 font-medium">
-                           {trip.direction === 'To CBD' ? '🏙️ Towards Town' : '🏡 Towards Kiungani'}
+                           Vehicle: {trip.vehicle_registration}
                         </span>
                         <span className="text-sky-600 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                          View Crew &rarr;
+                          View Details &rarr;
                         </span>
                       </div>
                     </div>
@@ -250,9 +290,11 @@ function PassengerView() {
                     &larr; Back to Schedule
                   </button>
                   <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
-                    <h4 className="text-2xl font-black text-slate-800 mb-1">{selectedTrip.time}</h4>
+                    <h4 className="text-2xl font-black text-slate-800 mb-1">
+                        {new Date(selectedTrip.scheduled_departure).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </h4>
                     <p className="text-slate-500 font-medium mb-6 pb-4 border-b border-slate-200">
-                      {selectedTrip.direction === 'To CBD' ? 'Route: Kiungani to CBD' : 'Route: CBD to Kiungani'}
+                      Route: Local Schedule
                     </p>
                     
                     <div className="space-y-4">
@@ -262,13 +304,13 @@ function PassengerView() {
                       </div>
                       <div>
                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Vehicle Details</p>
-                        <p className="font-semibold text-slate-800">{selectedTrip.busPlate} (County Link)</p>
+                        <p className="font-semibold text-slate-800">{selectedTrip.vehicle_registration}</p>
                       </div>
                       <div>
                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Crew Contact</p>
                         <div className="flex items-center gap-3">
-                          <p className="font-semibold text-slate-800">{selectedTrip.crew}</p>
-                          <a href={`tel:${selectedTrip.crew.match(/\d+/)[0]}`} className="bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-sm hover:bg-emerald-400">
+                          <p className="font-semibold text-slate-800">{selectedTrip.driver_phone}</p>
+                          <a href={`tel:${selectedTrip.driver_phone}`} className="bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-sm hover:bg-emerald-400">
                             📞 Call
                           </a>
                         </div>
@@ -299,13 +341,17 @@ function ProtectedRoute({ children, requiredRole }) {
     }
 
     if (requiredRole && userRole?.role !== requiredRole) {
-        return (
+        if (requiredRole === 'ADMIN' && userRole?.role === 'SYSTEM_ADMIN') {
+            // Allow SYSTEM_ADMIN to access ADMIN routes
+        } else {
+            return (
             <div className="min-h-screen flex flex-col items-center justify-center font-sans text-center px-4">
                 <h1 className="text-4xl font-black text-slate-800 mb-2">403 Forbidden</h1>
                 <p className="text-slate-500 mb-6">You are logged in, but you do not have {requiredRole} privileges.</p>
                 <a href="/" className="text-sky-600 font-bold hover:underline">&larr; Go Home</a>
             </div>
         );
+        }
     }
 
     return children;
