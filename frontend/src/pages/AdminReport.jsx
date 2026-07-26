@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export function AdminReport() {
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [dateRange, setDateRange] = useState('today');
 
     useEffect(() => {
         // Fetch report from FastAPI backend
@@ -40,18 +42,33 @@ export function AdminReport() {
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 font-sans print:bg-white print:p-0">
-            <header className="mb-8 flex justify-between items-start print:mb-4">
+            <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:mb-4">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-800">TM Savannah</h1>
                     <h2 className="text-xl text-slate-600">Route Analytics & Monetization Report</h2>
-                    <p className="text-sm text-slate-400 mt-1">Tenant: {reportData.tenant_id} | Date: {new Date().toLocaleDateString()}</p>
+                    <p className="text-sm text-slate-400 mt-1">Tenant: {reportData.tenant_id} | Generated: {new Date().toLocaleDateString()}</p>
                 </div>
-                <button 
-                    onClick={() => window.print()}
-                    className="bg-indigo-600 text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-indigo-500 transition-colors print:hidden"
-                >
-                    🖨️ Save as PDF
-                </button>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto print:hidden">
+                    <select 
+                        value={dateRange} 
+                        onChange={(e) => setDateRange(e.target.value)}
+                        className="bg-white border border-slate-300 text-slate-700 font-bold px-4 py-2 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-full sm:w-auto"
+                    >
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="last7days">Last 7 Days</option>
+                        <option value="last30days">Last 30 Days (1 Month)</option>
+                        <option value="alltime">All Time</option>
+                    </select>
+                    
+                    <button 
+                        onClick={() => window.print()}
+                        className="bg-indigo-600 text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-indigo-500 transition-colors w-full sm:w-auto flex items-center justify-center gap-2"
+                    >
+                        <span>🖨️</span> Save as PDF
+                    </button>
+                </div>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 print:block print:space-y-6">

@@ -96,7 +96,7 @@ function AdminDashboard() {
 
                 {/* Tabs Navigation */}
                 <div className="flex flex-wrap gap-4 mb-8">
-                    {['FLEET', 'PERSONNEL', 'ROUTES', 'LEGAL', 'ANALYTICS']
+                    {['FLEET', 'ROUTES', 'LEGAL', 'ANALYTICS']
                         .filter(tab => tab !== 'ANALYTICS' || userRole?.role === 'SYSTEM_ADMIN')
                         .map(tab => (
                         <button 
@@ -246,68 +246,6 @@ function AdminDashboard() {
                     </div>
                 )}
 
-                {activeTab === 'PERSONNEL' && (
-                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto">
-                        <div className="mb-8">
-                            <h2 className="text-2xl font-black text-slate-800">Provision Personnel</h2>
-                            <p className="text-slate-500 mt-2">
-                                This form executes a privileged call to the backend provisioning engine, validating your Admin token before creating new credentials in the Supabase Auth database.
-                            </p>
-                        </div>
-                        
-                        <form 
-                            onSubmit={async (e) => {
-                                e.preventDefault();
-                                const email = e.target.email.value;
-                                const role = e.target.role.value;
-                                alert(`Provisioning request sent for ${email} as ${role}. Awaiting telemetry validation...`);
-                                
-                                try {
-                                    const response = await fetch('http://127.0.0.1:8001/api/v1/admin/provision', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ email, role, tenant_id: 'kiungani-01' })
-                                    });
-                                    const result = await response.json();
-                                    alert(result.message);
-                                    e.target.reset();
-                                } catch (err) {
-                                    alert("Failed to connect to provisioning server.");
-                                }
-                            }}
-                            className="space-y-6 bg-slate-50 p-6 rounded-xl border border-slate-100"
-                        >
-                            <div>
-                                <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-2">Email Address</label>
-                                <input name="email" type="email" required className="w-full border-slate-300 rounded-xl p-4 bg-white border shadow-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all font-medium" placeholder="driver.name@sacco.com" />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-2">System Role</label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <label className="cursor-pointer">
-                                        <input type="radio" name="role" value="DRIVER" className="peer sr-only" defaultChecked />
-                                        <div className="p-4 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 peer-checked:border-sky-500 peer-checked:bg-sky-50 transition-all">
-                                            <p className="font-black text-slate-800 text-lg">Driver</p>
-                                            <p className="text-xs text-slate-500 font-medium mt-1">Can access Driver Portal and stream GPS data.</p>
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input type="radio" name="role" value="ADMIN" className="peer sr-only" />
-                                        <div className="p-4 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 peer-checked:border-sky-500 peer-checked:bg-sky-50 transition-all">
-                                            <p className="font-black text-slate-800 text-lg">Administrator</p>
-                                            <p className="text-xs text-slate-500 font-medium mt-1">Full access to Operations and Provisioning.</p>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <button type="submit" className="w-full bg-emerald-600 text-white font-black text-lg py-4 rounded-xl hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 transition-all">
-                                Create Identity Credentials
-                            </button>
-                        </form>
-                    </div>
-                )}
 
                 {activeTab === 'ROUTES' && (
                     <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500">

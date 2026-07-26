@@ -4,6 +4,7 @@ import AdRotator from './components/AdRotator';
 import AdminReport from './pages/AdminReport';
 import AdminDashboard from './pages/AdminDashboard';
 import DriverPortal from './pages/DriverPortal';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import LandingPage from './pages/LandingPage';
 import RouteSelector from './pages/RouteSelector';
 import Login from './pages/Login';
@@ -398,9 +399,22 @@ function MainApp() {
     return <ProtectedRoute requiredRole="ADMIN"><AdminDashboard /></ProtectedRoute>;
   }
 
+  if (currentRoute === '/sadmin') {
+    return <SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute>;
+  }
+
   // Fallback to landing page for unknown routes
   return <LandingPage />;
 }
+
+const SuperAdminRoute = ({ children }) => {
+  const { user, userRole, loading } = useAuth();
+  
+  if (loading) return <div className="h-screen flex items-center justify-center font-bold">Checking System Clearance...</div>;
+  if (!user || userRole?.role !== 'SYSTEM_ADMIN') return <Navigate to="/" />;
+  
+  return children;
+};
 
 function App() {
   return (
