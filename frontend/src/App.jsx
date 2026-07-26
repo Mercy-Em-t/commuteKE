@@ -133,7 +133,7 @@ function PassengerView() {
           </a>
           <div>
             <p className="text-xs text-amber-500 font-bold tracking-widest uppercase mb-1">{today}</p>
-            <h1 className="text-xl font-black text-white">Kiungani TransitOS</h1>
+            <h1 className="text-xl font-black text-white">Kiungani Transy</h1>
           </div>
           <div className="w-6"></div> {/* Spacer for centering */}
         </header>

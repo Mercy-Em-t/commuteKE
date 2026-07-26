@@ -94,6 +94,11 @@
         const classifiedLink = document.getElementById('classified-link');
         
         trigger.addEventListener('click', () => {
+            // Security Check: Only allow System Admins to access the classified trigger
+            if (localStorage.getItem('isSystemAdmin') !== 'true') {
+                return;
+            }
+
             tapCount++;
             clearTimeout(tapTimeout);
             

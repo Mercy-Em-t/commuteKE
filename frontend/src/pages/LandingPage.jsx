@@ -28,7 +28,7 @@ function LandingPage() {
         <div className="min-h-screen bg-white font-sans flex flex-col">
             {/* Hero Section */}
             <header className="bg-slate-900 text-white p-8 sm:p-16 text-center border-b-8 border-amber-500">
-                <h1 className="text-4xl sm:text-6xl font-black mb-4">TransitOS</h1>
+                <h1 className="text-4xl sm:text-6xl font-black mb-4">Transy</h1>
                 <p className="text-xl sm:text-2xl text-slate-300 font-light max-w-2xl mx-auto">
                     Custom Commute Management for Saccos and Private Transport.
                 </p>
@@ -41,7 +41,7 @@ function LandingPage() {
 
             {/* Features */}
             <section className="py-16 px-4 max-w-5xl mx-auto text-center">
-                <h2 className="text-3xl font-bold text-slate-800 mb-12">Why TransitOS?</h2>
+                <h2 className="text-3xl font-bold text-slate-800 mb-12">Why Transy?</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
                         <div className="text-4xl mb-4">📍</div>
@@ -65,7 +65,7 @@ function LandingPage() {
             <section className="bg-slate-100 py-16 px-4">
                 <div className="max-w-xl mx-auto bg-white p-8 rounded-3xl shadow-xl border border-slate-200">
                     <h2 className="text-2xl font-bold text-slate-800 mb-2">Get in Touch</h2>
-                    <p className="text-slate-500 mb-6">Want to deploy TransitOS for your Sacco? Send us an inquiry.</p>
+                    <p className="text-slate-500 mb-6">Want to deploy Transy for your Sacco? Send us an inquiry.</p>
                     
                     {status === 'success' ? (
                         <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl font-bold text-center border border-emerald-200">
