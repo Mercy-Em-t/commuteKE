@@ -7,6 +7,8 @@ import DriverPortal from './pages/DriverPortal';
 import LandingPage from './pages/LandingPage';
 import RouteSelector from './pages/RouteSelector';
 import Login from './pages/Login';
+import Sandbox from './pages/Sandbox';
+import AdminLibrary from './pages/AdminLibrary';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -41,9 +43,22 @@ function PassengerView() {
   const [showSchedule, setShowSchedule] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
   
+  // Passenger State
+  const [passengerName, setPassengerName] = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [subscriptionMessage, setSubscriptionMessage] = useState(null);
+  
   const today = new Date().toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
   useEffect(() => {
+    // Check if the passenger is recognized
+    const storedName = localStorage.getItem('passenger_name');
+    if (storedName) {
+      setPassengerName(storedName);
+    } else {
+      setShowOnboarding(true);
+    }
+
     // Simulate live bus movement along the route
     let index = 0;
     const interval = setInterval(() => {
@@ -53,17 +68,25 @@ function PassengerView() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    // Log page view when the passenger map loads
-    fetch('http://127.0.0.1:8001/api/v1/analytics/pageview', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenant_id: 'kiungani-01' })
-    }).catch(err => console.error("Failed to log page view:", err));
-  }, []);
+  const handleSubscribe = () => {
+    // Simulate WebSocket connection delay
+    setSubscriptionMessage("Connecting to secure express highway...");
+    setTimeout(() => {
+        setSubscriptionMessage(`Connection successful! You are securely subscribed to the 6:00 PM Kiungani route. We will notify you ${passengerName}.`);
+        setTimeout(() => setSubscriptionMessage(null), 5000);
+    }, 1500);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-100 font-sans sm:items-center">
+      
+      {/* Subscription Toast Notification */}
+      {subscriptionMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-full shadow-lg font-bold text-sm animate-in fade-in slide-in-from-top-4 w-[90%] max-w-md text-center">
+            {subscriptionMessage}
+        </div>
+      )}
+
       {/* Mobile-first container constraining width on desktop */}
       <div className="w-full sm:max-w-md flex flex-col min-h-screen bg-white shadow-xl relative">
         
@@ -77,6 +100,15 @@ function PassengerView() {
           </div>
           <div className="w-6"></div> {/* Spacer for centering */}
         </header>
+
+        {passengerName && (
+            <div className="bg-emerald-50 border-b border-emerald-100 py-2 text-center shadow-sm relative z-10">
+                <p className="text-xs font-bold text-emerald-800 uppercase tracking-widest">
+                    <span className="inline-block w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
+                    Welcome back, {passengerName}
+                </p>
+            </div>
+        )}
 
         <main className="flex-grow flex flex-col relative">
           
@@ -116,11 +148,7 @@ function PassengerView() {
 
             <div className="flex gap-2">
               <button 
-                onClick={() => {
-                  if(window.confirm("TM Savannah wants to send you Notifications (Push Alerts). Allow?")) {
-                    alert("Subscribed! You will get a notification when the bus is 15 minutes away.");
-                  }
-                }}
+                onClick={handleSubscribe}
                 className="flex-1 bg-slate-800 text-white font-semibold py-3.5 rounded-xl shadow-md hover:bg-slate-700 active:scale-[0.98] transition-all">
                 🔔 Notify Me
               </button>
@@ -143,6 +171,32 @@ function PassengerView() {
         </main>
 
         <PassengerFooter />
+
+        {/* Onboarding Modal */}
+        {showOnboarding && (
+            <div className="absolute inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-6">
+                <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center animate-in zoom-in-95 duration-300">
+                    <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl">👋</span>
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-800 mb-2">Welcome Aboard!</h2>
+                    <p className="text-slate-500 font-medium mb-6">To personalize your trip tracking, what should we call you?</p>
+                    
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const name = e.target.pname.value;
+                        localStorage.setItem('passenger_name', name);
+                        setPassengerName(name);
+                        setShowOnboarding(false);
+                    }}>
+                        <input name="pname" type="text" required placeholder="Enter your name" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-center font-bold text-slate-800 mb-4 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                        <button type="submit" className="w-full bg-sky-600 text-white font-bold py-4 rounded-xl shadow-md hover:bg-sky-700 transition-colors">
+                            Start Tracking
+                        </button>
+                    </form>
+                </div>
+            </div>
+        )}
 
         {/* Schedule Modal */}
         {showSchedule && (
@@ -229,18 +283,27 @@ function PassengerView() {
   );
 }
 
-// Security Wrapper: Checks if user is authenticated before rendering Admin/Driver portals
-function ProtectedRoute({ children }) {
-    const { user, loading } = useAuth();
+// Security Wrapper: Checks if user is authenticated and has the correct role
+function ProtectedRoute({ children, requiredRole }) {
+    const { user, userRole, loading } = useAuth();
 
     if (loading) {
-        return <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">Authenticating...</div>;
+        return <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">Authenticating & Verifying Roles...</div>;
     }
 
     if (!user) {
-        // Redirect unauthorized users to the login screen
         window.location.href = '/login';
         return null;
+    }
+
+    if (requiredRole && userRole?.role !== requiredRole) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center font-sans text-center px-4">
+                <h1 className="text-4xl font-black text-slate-800 mb-2">403 Forbidden</h1>
+                <p className="text-slate-500 mb-6">You are logged in, but you do not have {requiredRole} privileges.</p>
+                <a href="/" className="text-sky-600 font-bold hover:underline">&larr; Go Home</a>
+            </div>
+        );
     }
 
     return children;
@@ -272,15 +335,23 @@ function MainApp() {
   }
 
   if (currentRoute === '/admin' || currentRoute === '/report') {
-    return <ProtectedRoute><AdminReport /></ProtectedRoute>;
+    return <ProtectedRoute requiredRole="ADMIN"><AdminReport /></ProtectedRoute>;
+  }
+
+  if (currentRoute === '/admin/library') {
+    return <ProtectedRoute requiredRole="ADMIN"><AdminLibrary /></ProtectedRoute>;
+  }
+
+  if (currentRoute === '/admin/sandbox') {
+    return <Sandbox />;
   }
 
   if (currentRoute === '/driver') {
-    return <ProtectedRoute><DriverPortal /></ProtectedRoute>;
+    return <ProtectedRoute requiredRole="DRIVER"><DriverPortal /></ProtectedRoute>;
   }
 
   if (currentRoute === '/roster' || currentRoute === '/operations') {
-    return <ProtectedRoute><AdminDashboard /></ProtectedRoute>;
+    return <ProtectedRoute requiredRole="ADMIN"><AdminDashboard /></ProtectedRoute>;
   }
 
   // Fallback to landing page for unknown routes

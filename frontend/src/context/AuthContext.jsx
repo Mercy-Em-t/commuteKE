@@ -10,18 +10,37 @@ const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [userRole, setUserRole] = useState(null); // e.g., 'ADMIN' or 'DRIVER'
     const [loading, setLoading] = useState(true);
 
+    const fetchRole = async (userId) => {
+        const { data, error } = await supabase
+            .from('user_roles')
+            .select('role, tenant_id')
+            .eq('user_id', userId)
+            .single();
+        
+        if (data) {
+            setUserRole(data);
+        } else {
+            setUserRole(null);
+        }
+    };
+
     useEffect(() => {
-        // Check active sessions and sets the user
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
+            if (session?.user) fetchRole(session.user.id);
             setLoading(false);
         });
 
-        // Listen for changes on auth state (in, out, etc.)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
+            if (session?.user) {
+                fetchRole(session.user.id);
+            } else {
+                setUserRole(null);
+            }
         });
 
         return () => subscription.unsubscribe();
@@ -50,7 +69,7 @@ export const AuthProvider = ({ children }) => {
     const signOut = () => supabase.auth.signOut();
 
     return (
-        <AuthContext.Provider value={{ user, signInWithOtp, verifyOtp, signOut, loading }}>
+        <AuthContext.Provider value={{ user, userRole, signInWithOtp, verifyOtp, signOut, loading }}>
             {children}
         </AuthContext.Provider>
     );

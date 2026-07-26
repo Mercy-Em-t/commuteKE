@@ -35,8 +35,9 @@ function Login() {
             setStatus('error');
             setMessage(error.message);
         } else {
-            // Success! The AuthContext will automatically update and ProtectedRoute will redirect.
-            setStatus('');
+            setStatus('success');
+            setMessage('Success! Redirecting...');
+            window.location.href = '/admin'; // Force redirect to the secure portal
         }
     };
 
@@ -78,15 +79,14 @@ function Login() {
                 ) : (
                     <form onSubmit={handleVerifyOtp} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Enter 6-Digit Code</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Enter Secure Code</label>
                             <input 
                                 type="text" 
                                 required 
                                 value={token} 
                                 onChange={e => setToken(e.target.value)}
                                 className="w-full border-slate-300 rounded-xl p-3 bg-slate-50 border focus:border-sky-500 focus:ring-1 focus:ring-sky-500 text-center text-2xl tracking-widest font-black" 
-                                placeholder="------"
-                                maxLength={6}
+                                placeholder="Token"
                             />
                         </div>
                         <button 

@@ -117,21 +117,73 @@ async def record_ad_impression(impression: AdImpression):
 @app.get("/api/v1/analytics/report")
 async def get_analytics_report(tenant_id: str):
     # In production, run aggregate queries via Supabase/PostgreSQL
-    # Mock data for frontend MVP:
     return {
         "tenant_id": tenant_id,
         "total_views_today": 1245,
         "peak_hours": [
             {"hour": "06:00 AM", "views": 320},
             {"hour": "07:00 AM", "views": 450},
-            {"hour": "08:00 AM", "views": 210},
-            {"hour": "05:00 PM", "views": 200},
         ],
         "sponsor_impressions": [
             {"sponsor_name": "Kiungani Fresh Butchery", "impressions": 850},
-            {"sponsor_name": "Katani Pizza", "impressions": 395}
         ]
     }
+
+class ProvisionRequest(BaseModel):
+    email: str
+    role: str
+    tenant_id: str
+
+@app.post("/api/v1/admin/provision")
+async def provision_user(req: ProvisionRequest, request: Request):
+    # 1. Telemetry / 403 Helpers
+    client_ip = request.client.host
+    user_agent = request.headers.get("user-agent", "Unknown Device")
+    
+    # In production, you would check if client_ip is blacklisted,
+    # or if the requesting Admin's JWT is valid before proceeding.
+    print(f"🔒 PROVISIONING REQUEST INITIATED")
+    print(f"   IP Address: {client_ip}")
+    print(f"   Device: {user_agent}")
+    print(f"   Target: {req.email} as {req.role} for {req.tenant_id}")
+
+    # 2. Supabase Admin API Call (Simulated until environment variables are set)
+    SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
+    SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE:
+        return {"status": "warning", "message": "Service Role Key not found. Telemetry logged, but account creation skipped locally."}
+    
+    import requests
+    # Create the user in Auth
+    auth_resp = requests.post(
+        f"{SUPABASE_URL}/auth/v1/admin/users",
+        headers={
+            "apikey": SUPABASE_SERVICE_ROLE,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE}",
+            "Content-Type": "application/json"
+        },
+        json={"email": req.email, "email_confirm": True}
+    )
+    
+    if auth_resp.status_code not in [200, 201]:
+        return {"status": "error", "message": auth_resp.json().get("msg", "Failed to create Auth User")}
+    
+    user_id = auth_resp.json().get("id")
+    
+    # Insert into user_roles
+    role_resp = requests.post(
+        f"{SUPABASE_URL}/rest/v1/user_roles",
+        headers={
+            "apikey": SUPABASE_SERVICE_ROLE,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        },
+        json={"user_id": user_id, "tenant_id": req.tenant_id, "role": req.role}
+    )
+    
+    return {"status": "success", "message": f"User {req.email} successfully provisioned as {req.role}."}
 
 @app.get("/health")
 def health_check():
