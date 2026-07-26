@@ -25,23 +25,31 @@ export function AdminReport() {
     if (!reportData) return <div className="p-8 text-center text-red-500">Failed to load analytics.</div>;
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6 font-sans">
-            <header className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-800">TM Savannah</h1>
-                <h2 className="text-xl text-slate-600">Route Analytics & Monetization Report</h2>
-                <p className="text-sm text-slate-400 mt-1">Tenant: {reportData.tenant_id} | Date: {new Date().toLocaleDateString()}</p>
+        <div className="min-h-screen bg-slate-50 p-6 font-sans print:bg-white print:p-0">
+            <header className="mb-8 flex justify-between items-start print:mb-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-800">TM Savannah</h1>
+                    <h2 className="text-xl text-slate-600">Route Analytics & Monetization Report</h2>
+                    <p className="text-sm text-slate-400 mt-1">Tenant: {reportData.tenant_id} | Date: {new Date().toLocaleDateString()}</p>
+                </div>
+                <button 
+                    onClick={() => window.print()}
+                    className="bg-indigo-600 text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-indigo-500 transition-colors print:hidden"
+                >
+                    🖨️ Save as PDF
+                </button>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 print:block print:space-y-6">
                 {/* Total Views Card */}
-                <div className="bg-white rounded-lg shadow p-6 border-t-4 border-sky-500">
+                <div className="bg-white rounded-lg shadow p-6 border-t-4 border-sky-500 print:shadow-none print:border print:border-slate-200">
                     <h3 className="text-lg font-semibold text-slate-700">Total Views Today</h3>
                     <p className="text-4xl font-bold text-sky-600 mt-2">{reportData.total_views_today.toLocaleString()}</p>
                     <p className="text-sm text-slate-400 mt-2">Active unique passenger map loads.</p>
                 </div>
 
                 {/* Peak Hours Card */}
-                <div className="bg-white rounded-lg shadow p-6 border-t-4 border-emerald-500">
+                <div className="bg-white rounded-lg shadow p-6 border-t-4 border-emerald-500 print:shadow-none print:border print:border-slate-200">
                     <h3 className="text-lg font-semibold text-slate-700 mb-4">Peak Traffic Hours</h3>
                     <div className="space-y-3">
                         {reportData.peak_hours.map((peak, index) => (
@@ -61,7 +69,7 @@ export function AdminReport() {
             </div>
 
             {/* Sponsor Impressions Card */}
-            <div className="bg-white rounded-lg shadow p-6 border-t-4 border-indigo-500">
+            <div className="bg-white rounded-lg shadow p-6 border-t-4 border-indigo-500 print:shadow-none print:border print:border-slate-200">
                 <h3 className="text-lg font-semibold text-slate-700 mb-4">Ad Slot Impressions Delivered</h3>
                 <table className="w-full text-left border-collapse">
                     <thead>

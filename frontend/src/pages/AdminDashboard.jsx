@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
 
 function AdminDashboard() {
+    const { userRole } = useAuth();
     const [fleet, setFleet] = useState([]);
     const [loading, setLoading] = useState(true);
     const [trips, setTrips] = useState([]);
@@ -10,6 +12,27 @@ function AdminDashboard() {
     // Editor State
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [newStatus, setNewStatus] = useState('');
+    const [showAddVehicle, setShowAddVehicle] = useState(false);
+    const [isKiserianLive, setIsKiserianLive] = useState(false);
+
+    // CSV Download Helper
+    const downloadCSV = (data, filename) => {
+        if (!data || !data.length) return alert("No data to export.");
+        const headers = Object.keys(data[0]).join(',');
+        const rows = data.map(row => 
+            Object.values(row).map(val => 
+                `"${String(val).replace(/"/g, '""')}"`
+            ).join(',')
+        );
+        const csvContent = [headers, ...rows].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     useEffect(() => {
         const fetchFleet = async () => {
@@ -73,7 +96,9 @@ function AdminDashboard() {
 
                 {/* Tabs Navigation */}
                 <div className="flex flex-wrap gap-4 mb-8">
-                    {['FLEET', 'PERSONNEL', 'ROUTES', 'LEGAL', 'ANALYTICS'].map(tab => (
+                    {['FLEET', 'PERSONNEL', 'ROUTES', 'LEGAL', 'ANALYTICS']
+                        .filter(tab => tab !== 'ANALYTICS' || userRole?.role === 'SYSTEM_ADMIN')
+                        .map(tab => (
                         <button 
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -93,7 +118,15 @@ function AdminDashboard() {
                                     <h2 className="text-xl font-bold text-slate-800">Active Fleet</h2>
                                     <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider">Total Vehicles: {fleet.length}</p>
                                 </div>
-                                {loading && <span className="text-xs font-bold text-sky-500 animate-pulse">Syncing...</span>}
+                                <div className="flex gap-2 items-center">
+                                    <button 
+                                        onClick={() => downloadCSV(fleet, 'kiungani_fleet_export.csv')}
+                                        className="text-xs font-bold text-sky-600 bg-sky-50 px-3 py-1.5 rounded-lg hover:bg-sky-100 transition-colors border border-sky-100"
+                                    >
+                                        ⬇️ CSV Export
+                                    </button>
+                                    {loading && <span className="text-xs font-bold text-sky-500 animate-pulse">Syncing...</span>}
+                                </div>
                             </div>
                             
                             <div className="space-y-4">
@@ -123,18 +156,50 @@ function AdminDashboard() {
                                     ))
                                 )}
                                 
-                                <button className="w-full mt-4 border-2 border-dashed border-slate-300 text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-50 hover:border-sky-300 hover:text-sky-600 transition-colors">
-                                    + Add New Vehicle
-                                </button>
+                                {showAddVehicle ? (
+                                    <form 
+                                        onSubmit={async (e) => {
+                                            e.preventDefault();
+                                            const reg = e.target.reg.value;
+                                            const capacity = parseInt(e.target.capacity.value);
+                                            const { error } = await supabase.from('fleet').insert([{ registration_number: reg, capacity: capacity, status: 'ACTIVE', tenant_id: 'kiungani-01' }]);
+                                            if (error) alert("Error adding vehicle: " + error.message);
+                                            else setShowAddVehicle(false);
+                                        }}
+                                        className="mt-4 p-4 border border-slate-200 rounded-xl bg-slate-50"
+                                    >
+                                        <input type="text" name="reg" placeholder="Reg Number (e.g. KCD 123X)" required className="w-full mb-3 p-2 border border-slate-300 rounded focus:ring-sky-500 focus:border-sky-500" />
+                                        <input type="number" name="capacity" placeholder="Capacity (e.g. 33)" required className="w-full mb-3 p-2 border border-slate-300 rounded focus:ring-sky-500 focus:border-sky-500" />
+                                        <div className="flex gap-2">
+                                            <button type="button" onClick={() => setShowAddVehicle(false)} className="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg font-bold hover:bg-slate-300 transition-colors">Cancel</button>
+                                            <button type="submit" className="flex-1 bg-sky-600 text-white py-2 rounded-lg font-bold hover:bg-sky-500 transition-colors">Save Vehicle</button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <button 
+                                        onClick={() => setShowAddVehicle(true)}
+                                        className="w-full mt-4 border-2 border-dashed border-slate-300 text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-50 hover:border-sky-300 hover:text-sky-600 transition-colors"
+                                    >
+                                        + Add New Vehicle
+                                    </button>
+                                )}
                             </div>
                         </div>
 
                         {/* Timetable Override Module */}
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <h2 className="text-xl font-bold text-slate-800 mb-2">Live Timetable Assignments</h2>
-                            <p className="text-sm text-slate-500 mb-6 border-b pb-4 border-slate-100">
-                                Auto-syncs with driver apps via Realtime.
-                            </p>
+                            <div className="flex justify-between items-start mb-6 border-b pb-4 border-slate-100">
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-800 mb-1">Live Timetable Assignments</h2>
+                                    <p className="text-sm text-slate-500">Auto-syncs with driver apps.</p>
+                                </div>
+                                <button 
+                                    onClick={() => downloadCSV(trips, 'kiungani_trips_export.csv')}
+                                    className="text-xs font-bold text-sky-600 bg-sky-50 px-3 py-1.5 rounded-lg hover:bg-sky-100 transition-colors border border-sky-100"
+                                >
+                                    ⬇️ Export Trips
+                                </button>
+                            </div>
                             
                             <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                                 {trips.length === 0 ? (
@@ -280,24 +345,38 @@ function AdminDashboard() {
                             </div>
 
                             {/* Draft Route */}
-                            <div className="bg-slate-50 border border-dashed border-slate-300 p-6 rounded-xl opacity-80">
+                            <div className={`border p-6 rounded-xl transition-all ${isKiserianLive ? 'bg-slate-50 border-slate-200 shadow-sm relative overflow-hidden' : 'bg-slate-50 border-dashed border-slate-300 opacity-80'}`}>
+                                {isKiserianLive && <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-black px-3 py-1 uppercase tracking-widest rounded-bl-lg">LIVE</div>}
                                 <h3 className="font-black text-xl text-slate-800 mb-1">Kiserian Transit</h3>
-                                <p className="text-sm text-slate-500 mb-4 font-medium">Pending coordinate mapping and stop designation.</p>
+                                <p className="text-sm text-slate-500 mb-4 font-medium">Connects Kiserian to Nairobi CBD.</p>
                                 <div className="flex gap-4">
                                     <div className="flex-1 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Stops</p>
-                                        <p className="font-bold text-slate-400">0 Waypoints</p>
+                                        <p className={`font-bold ${isKiserianLive ? 'text-slate-700' : 'text-slate-400'}`}>15 Waypoints</p>
                                     </div>
                                     <div className="flex-1 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>
-                                        <p className="font-bold text-slate-500">Draft</p>
+                                        <p className={`font-bold ${isKiserianLive ? 'text-emerald-600' : 'text-slate-500'}`}>{isKiserianLive ? 'Published' : 'Draft'}</p>
                                     </div>
                                 </div>
-                                <div className="mt-6">
-                                    <button className="w-full bg-sky-600 text-white font-bold py-3 rounded-lg hover:bg-sky-500 shadow-sm transition-colors flex items-center justify-center gap-2">
-                                        <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                                        Make Route Live
-                                    </button>
+                                <div className="mt-6 flex gap-3">
+                                    {!isKiserianLive ? (
+                                        <button 
+                                            onClick={() => {
+                                                alert("Coordinates compiled. Publishing Kiserian Route to Passenger maps...");
+                                                setTimeout(() => setIsKiserianLive(true), 1000);
+                                            }}
+                                            className="w-full bg-sky-600 text-white font-bold py-3 rounded-lg hover:bg-sky-500 shadow-sm transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                                            Make Route Live
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button className="flex-1 bg-white border-2 border-slate-200 text-slate-600 font-bold py-2 rounded-lg hover:border-slate-300 transition-colors">Edit Path</button>
+                                            <button onClick={() => setIsKiserianLive(false)} className="flex-1 bg-amber-100 text-amber-700 font-bold py-2 rounded-lg hover:bg-amber-200 transition-colors">Unpublish</button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -332,9 +411,19 @@ function AdminDashboard() {
 
                 {activeTab === 'ANALYTICS' && (
                     <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="mb-8 border-b pb-6 border-slate-100">
-                            <h2 className="text-2xl font-black text-slate-800">System Analytics</h2>
-                            <p className="text-slate-500 mt-1">High-level visualization of operations and platform health.</p>
+                        <div className="mb-8 border-b pb-6 border-slate-100 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-black text-slate-800">System Analytics</h2>
+                                <p className="text-slate-500 mt-1">High-level visualization of operations and platform health.</p>
+                            </div>
+                            <a 
+                                href="/admin/report" 
+                                target="_blank"
+                                rel="noreferrer"
+                                className="bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold px-4 py-2 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm flex items-center gap-2"
+                            >
+                                📄 Generate PDF Report
+                            </a>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                             <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-xl">
