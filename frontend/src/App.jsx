@@ -411,7 +411,10 @@ const SuperAdminRoute = ({ children }) => {
   const { user, userRole, loading } = useAuth();
   
   if (loading) return <div className="h-screen flex items-center justify-center font-bold">Checking System Clearance...</div>;
-  if (!user || userRole?.role !== 'SYSTEM_ADMIN') return <Navigate to="/" />;
+  if (!user || userRole?.role !== 'SYSTEM_ADMIN') {
+      window.location.href = '/';
+      return null;
+  }
   
   return children;
 };
