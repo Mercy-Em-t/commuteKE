@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import ReactMarkdown from 'react-markdown';
+import architectureDoc from '../assets/architecture_summary.md?raw';
 
 function AdminLibrary() {
     const { user, userRole, loading } = useAuth();
@@ -87,21 +89,8 @@ function AdminLibrary() {
                                 <h2 className="text-2xl font-black uppercase tracking-widest text-white">TransitOS Architecture (Classified)</h2>
                             </div>
                             
-                            <div className="space-y-6">
-                                <div>
-                                    <h3 className="text-lg font-bold text-white mb-2">1. Core Data Flow</h3>
-                                    <p className="text-emerald-300/80 leading-relaxed">The system operates on a highly concurrent WebSocket multiplexer. The Driver Portal streams POSTGIS geometry points directly into the <code>active_trips</code> table. Supabase Realtime immediately broadcasts these row-level changes to thousands of anonymous passenger devices.</p>
-                                </div>
-                                
-                                <div>
-                                    <h3 className="text-lg font-bold text-white mb-2">2. Security Telemetry</h3>
-                                    <p className="text-emerald-300/80 leading-relaxed">All Admin provisioning requests pass through an IP and User-Agent telemetry wall. Requests lacking valid Admin JWTs or originating from blacklisted IPs are immediately dropped with a 403 status.</p>
-                                </div>
-
-                                <div>
-                                    <h3 className="text-lg font-bold text-white mb-2">3. The "Express Highway" Filter</h3>
-                                    <p className="text-emerald-300/80 leading-relaxed">Passengers do not receive global broadcasts. When Alice clicks the 6 PM Kiungani route, her Service Worker subscribes strictly to <code>tenant_id=eq.kiungani-01&trip_id=eq.123</code>. This guarantees O(1) broadcast complexity per user and eliminates data cross-contamination.</p>
-                                </div>
+                            <div className="prose prose-invert prose-emerald max-w-none text-emerald-300/90 leading-relaxed overflow-y-auto max-h-[60vh] pr-4 custom-scrollbar">
+                                <ReactMarkdown>{architectureDoc}</ReactMarkdown>
                             </div>
                         </div>
                     </div>
