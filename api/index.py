@@ -22,9 +22,7 @@ app.add_middleware(
 )
 
 from pydantic import BaseModel
-import sys
-sys.path.append(os.path.dirname(__file__))
-from mail_client import send_inquiry_email
+
 
 # Background CRON Task (APScheduler alternative using asyncio for local dev)
 async def generate_daily_trips():
@@ -45,6 +43,14 @@ class InquiryRequest(BaseModel):
 
 @app.post("/api/v1/inquiry")
 async def submit_inquiry(req: InquiryRequest):
+    import sys
+    import os
+    try:
+        sys.path.append(os.path.dirname(__file__))
+    except Exception:
+        pass
+    from mail_client import send_inquiry_email
+    
     result = send_inquiry_email(
         user_name=req.name,
         user_email=req.email,
