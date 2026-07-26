@@ -8,7 +8,6 @@ import LandingPage from './pages/LandingPage';
 import RouteSelector from './pages/RouteSelector';
 import Login from './pages/Login';
 import Sandbox from './pages/Sandbox';
-import AdminLibrary from './pages/AdminLibrary';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -339,10 +338,6 @@ function MainApp() {
 
   if (currentRoute === '/admin' || currentRoute === '/report') {
     return <ProtectedRoute requiredRole="ADMIN"><AdminReport /></ProtectedRoute>;
-  }
-
-  if (currentRoute === '/admin/library') {
-    return <ProtectedRoute requiredRole="ADMIN"><AdminLibrary /></ProtectedRoute>;
   }
 
   if (currentRoute === '/admin/sandbox') {
