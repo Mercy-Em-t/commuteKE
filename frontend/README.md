@@ -1,16 +1,19 @@
-# React + Vite
+# Frontend Deployment (Vercel)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Use `/home/runner/work/commuteKE/commuteKE/frontend` as the Vercel project root for the React app.
 
-Currently, two official plugins are available:
+## Required Vercel Settings
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Root Directory**: `frontend`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
 
-## React Compiler
+## Routing
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+SPA routing is handled by `/home/runner/work/commuteKE/commuteKE/frontend/vercel.json`:
+- all routes rewrite to `index.html` so direct visits (for example `/login`, `/routes`, `/track/...`) load correctly.
 
-## Expanding the Oxlint configuration
+## Backend Note
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+This frontend project no longer contains API build/routes wiring in its `vercel.json`.
+If backend deployment is needed, deploy `/home/runner/work/commuteKE/commuteKE/api` as a separate Vercel project (or define a dedicated monorepo root config where both frontend and backend paths are valid).
