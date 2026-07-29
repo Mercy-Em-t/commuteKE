@@ -3,27 +3,26 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabaseClient';
 
 function Login() {
-    const { signInWithOtp, verifyOtp } = useAuth();
+    const { signInWithOtp, verifyOtp, user, userRole, loading } = useAuth();
     const [email, setEmail] = useState('');
     const [token, setToken] = useState('');
     const [step, setStep] = useState('email');
     const [status, setStatus] = useState('');
     const [message, setMessage] = useState('');
 
-    // If user already has a valid session, skip login entirely
+    // If user already has a valid session and role, redirect automatically via SPA routing
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-                const role = localStorage.getItem('userRole');
-                const destinations = {
-                    'SYSTEM_ADMIN': '/sadmin',
-                    'ADMIN': '/admin',
-                    'DRIVER': '/driver',
-                };
-                window.location.href = destinations[role] || '/admin';
-            }
-        });
-    }, []);
+        if (!loading && user && userRole) {
+            const destinations = {
+                'SYSTEM_ADMIN': '/sadmin',
+                'ADMIN': '/admin',
+                'DRIVER': '/driver',
+            };
+            const dest = destinations[userRole.role] || '/admin';
+            window.history.pushState({}, '', dest);
+            window.dispatchEvent(new PopStateEvent('popstate'));
+        }
+    }, [user, userRole, loading]);
 
 
     const handleSendOtp = async (e) => {
@@ -53,14 +52,8 @@ function Login() {
             setMessage(error.message);
         } else {
             setStatus('success');
-            setMessage('Success! Redirecting...');
-            const role = localStorage.getItem('userRole');
-            const destinations = {
-                'SYSTEM_ADMIN': '/sadmin',
-                'ADMIN': '/admin',
-                'DRIVER': '/driver',
-            };
-            window.location.href = destinations[role] || '/admin';
+            setMessage('Success! Fetching clearance...');
+            // The useEffect hook above will trigger the redirect once AuthContext fetches the userRole.
         }
     };
 
