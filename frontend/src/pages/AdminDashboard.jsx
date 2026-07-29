@@ -15,6 +15,13 @@ function AdminDashboard() {
     const [showAddVehicle, setShowAddVehicle] = useState(false);
     const [isKiserianLive, setIsKiserianLive] = useState(false);
 
+    // Staff Management State
+    const [staffList, setStaffList] = useState([]);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteRole, setInviteRole] = useState('DRIVER');
+    const [isInviting, setIsInviting] = useState(false);
+    const [inviteMsg, setInviteMsg] = useState(null);
+
     // Sacco Settings State
     const [saccoDetails, setSaccoDetails] = useState({
         whatsapp_channel_link: '',
@@ -59,10 +66,20 @@ function AdminDashboard() {
             const { data, error } = await supabase.from('saccos').select('*').eq('id', 'kiungani-01').single();
             if (data) setSaccoDetails(data);
         };
+        const fetchStaff = async () => {
+            // Join user_roles with auth.users via the profiles table (if exists) or just show user_id + role
+            const { data, error } = await supabase
+                .from('user_roles')
+                .select('id, user_id, role, created_at')
+                .eq('tenant_id', 'kiungani-01')
+                .order('created_at', { ascending: false });
+            if (data) setStaffList(data);
+        };
 
         fetchFleet();
         fetchTrips();
         fetchSacco();
+        fetchStaff();
 
         const fleetChannel = supabase.channel('public:fleet')
             .on('postgres', { event: '*', schema: 'public', table: 'fleet' }, () => fetchFleet())
@@ -83,6 +100,45 @@ function AdminDashboard() {
         const { error } = await supabase.from('fleet').update({ status: newStatus }).eq('id', editingVehicle.id);
         if (!error) setEditingVehicle(null);
         else alert("Failed to update status.");
+    };
+
+    const inviteStaffMember = async (e) => {
+        e.preventDefault();
+        setIsInviting(true);
+        setInviteMsg(null);
+        try {
+            // Use Supabase Admin API via our backend to send magic link invite
+            const apiUrl = import.meta.env.DEV ? 'http://127.0.0.1:8001' : '';
+            const res = await fetch(`${apiUrl}/api/v1/staff/invite`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: inviteEmail, role: inviteRole, tenant_id: 'kiungani-01' })
+            });
+            const json = await res.json();
+            if (res.ok) {
+                setInviteMsg({ type: 'success', text: `Invite sent to ${inviteEmail}! They will receive a magic link to set up their account.` });
+                setInviteEmail('');
+            } else {
+                setInviteMsg({ type: 'error', text: json.detail || 'Failed to send invite.' });
+            }
+        } catch (err) {
+            setInviteMsg({ type: 'error', text: 'Network error. Please try again.' });
+        } finally {
+            setIsInviting(false);
+        }
+    };
+
+    const updateStaffRole = async (userId, newRole) => {
+        const { error } = await supabase
+            .from('user_roles')
+            .update({ role: newRole })
+            .eq('user_id', userId)
+            .eq('tenant_id', 'kiungani-01');
+        if (!error) {
+            setStaffList(prev => prev.map(s => s.user_id === userId ? { ...s, role: newRole } : s));
+        } else {
+            alert('Failed to update role: ' + error.message);
+        }
     };
     
     const generateEmergencyTrip = async () => {
@@ -127,16 +183,24 @@ function AdminDashboard() {
                 </header>
 
                 {/* Tabs Navigation */}
-                <div className="flex flex-wrap gap-4 mb-8">
-                    {['SCHEDULE', 'FLEET', 'ROUTES', 'LEGAL', 'ANALYTICS', 'SETTINGS']
-                        .filter(tab => tab !== 'ANALYTICS' || userRole?.role === 'SYSTEM_ADMIN')
+                <div className="flex flex-wrap gap-2 mb-8">
+                    {[
+                        { id: 'SCHEDULE', label: '📅 Schedule' },
+                        { id: 'FLEET', label: '🚌 Fleet' },
+                        { id: 'STAFF', label: '👥 Staff' },
+                        { id: 'ROUTES', label: '🗺️ Routes' },
+                        { id: 'LEGAL', label: '📄 Legal' },
+                        { id: 'ANALYTICS', label: '📊 Analytics' },
+                        { id: 'SETTINGS', label: '⚙️ Settings' },
+                    ]
+                        .filter(tab => tab.id !== 'ANALYTICS' || userRole?.role === 'SYSTEM_ADMIN')
                         .map(tab => (
                         <button 
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-6 py-3 font-bold rounded-xl transition-all shadow-sm ${activeTab === tab ? 'bg-sky-600 text-white shadow-sky-500/20' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm text-sm ${activeTab === tab.id ? 'bg-sky-600 text-white shadow-sky-500/20' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
                         >
-                            {tab}
+                            {tab.label}
                         </button>
                     ))}
                 </div>
@@ -424,6 +488,100 @@ function AdminDashboard() {
                                     )}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'STAFF' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Staff Roster */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <div className="mb-6 border-b pb-4 border-slate-100">
+                                <h2 className="text-xl font-bold text-slate-800">Staff Roster</h2>
+                                <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider">{staffList.length} members registered</p>
+                            </div>
+                            <div className="space-y-3">
+                                {staffList.length === 0 ? (
+                                    <p className="text-sm text-slate-500 text-center py-8">No staff registered yet. Invite your first Driver or Clerk below.</p>
+                                ) : (
+                                    staffList.map(member => (
+                                        <div key={member.id} className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <div>
+                                                <p className="font-bold text-slate-800 text-sm font-mono">{member.user_id.slice(0, 8)}...</p>
+                                                <p className="text-xs text-slate-500 mt-0.5">Joined {new Date(member.created_at).toLocaleDateString('en-KE')}</p>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className={`text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider ${
+                                                    member.role === 'ADMIN' ? 'bg-sky-100 text-sky-700' :
+                                                    member.role === 'CLERK' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-slate-100 text-slate-600'
+                                                }`}>{member.role}</span>
+                                                {member.role !== 'ADMIN' && (
+                                                    <select
+                                                        value={member.role}
+                                                        onChange={(e) => updateStaffRole(member.user_id, e.target.value)}
+                                                        className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white font-semibold focus:outline-none focus:border-sky-400"
+                                                    >
+                                                        <option value="DRIVER">DRIVER</option>
+                                                        <option value="CLERK">CLERK</option>
+                                                    </select>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Invite New Staff */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <div className="mb-6 border-b pb-4 border-slate-100">
+                                <h2 className="text-xl font-bold text-slate-800">Invite Staff Member</h2>
+                                <p className="text-xs text-slate-500 mt-1">They will receive a magic link to set up their Transy account.</p>
+                            </div>
+                            <form onSubmit={inviteStaffMember} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
+                                    <input
+                                        required
+                                        type="email"
+                                        value={inviteEmail}
+                                        onChange={e => setInviteEmail(e.target.value)}
+                                        placeholder="driver@example.com"
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-medium"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Role</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {['DRIVER', 'CLERK'].map(r => (
+                                            <label key={r} className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                                inviteRole === r ? 'border-sky-500 bg-sky-50' : 'border-slate-200 hover:border-slate-300'
+                                            }`}>
+                                                <input type="radio" name="inviteRole" value={r} checked={inviteRole === r} onChange={() => setInviteRole(r)} className="w-4 h-4 text-sky-600" />
+                                                <div>
+                                                    <p className="font-black text-slate-800 text-sm">{r}</p>
+                                                    <p className="text-xs text-slate-500">{r === 'DRIVER' ? 'GPS + trip status' : 'Stage dispatch + swaps'}</p>
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                                {inviteMsg && (
+                                    <div className={`p-3 rounded-xl text-sm font-semibold ${
+                                        inviteMsg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                                    }`}>
+                                        {inviteMsg.text}
+                                    </div>
+                                )}
+                                <button
+                                    type="submit"
+                                    disabled={isInviting}
+                                    className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl hover:bg-slate-800 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isInviting ? 'Sending...' : '✉️ Send Invite'}
+                                </button>
+                            </form>
                         </div>
                     </div>
                 )}

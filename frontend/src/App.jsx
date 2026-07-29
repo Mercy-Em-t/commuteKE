@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import Sandbox from './pages/Sandbox';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import ClerkPortal from './pages/ClerkPortal';
 import ScheduleDrawer from './components/ScheduleDrawer';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { supabase } from './supabaseClient';
@@ -485,6 +486,10 @@ function MainApp() {
 
   if (currentRoute === '/sadmin') {
     return <SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute>;
+  }
+
+  if (currentRoute === '/clerk') {
+    return <ProtectedRoute requiredRole="CLERK"><ClerkPortal /></ProtectedRoute>;
   }
 
   if (currentRoute === '/privacy') {
