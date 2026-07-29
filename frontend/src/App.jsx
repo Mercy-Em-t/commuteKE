@@ -70,29 +70,43 @@ function PassengerView() {
     
     // Fetch Sacco Data
     const fetchSacco = async () => {
-        const { data } = await supabase.from('saccos').select('*').eq('id', 'kiungani-01').single();
-        if (data) setSaccoData(data);
-    };
-    fetchSacco();
-
-    // Fetch initial trips from Supabase
-    const fetchTrips = async () => {
-        const { data, error } = await supabase
-            .from('active_trips')
-            .select('*')
-            .eq('tenant_id', 'kiungani-01')
-            .order('scheduled_departure', { ascending: true });
-        
-        if (data && data.length > 0) {
-            setLiveTrips(data);
-            const active = data.find(t => t.status === 'IN_TRANSIT' || t.status === 'BOARDING') || data[0];
-            if (active && active.current_location) {
-                const pos = parsePoint(active.current_location);
-                if (pos) setBusPosition(pos);
-            }
+        try {
+            const { data } = await supabase.from('saccos').select('*').eq('id', 'kiungani-01').single();
+            if (data) setSaccoData(data);
+        } catch (e) {
+            console.error("Network error fetching sacco data, will retry on reconnect.");
         }
     };
-    fetchTrips();
+    
+    // Fetch initial trips from Supabase
+    const fetchTrips = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('active_trips')
+                .select('*')
+                .eq('tenant_id', 'kiungani-01')
+                .order('scheduled_departure', { ascending: true });
+            
+            if (data && data.length > 0) {
+                setLiveTrips(data);
+                const active = data.find(t => t.status === 'IN_TRANSIT' || t.status === 'BOARDING') || data[0];
+                if (active && active.current_location) {
+                    const pos = parsePoint(active.current_location);
+                    if (pos) setBusPosition(pos);
+                }
+            }
+        } catch (e) {
+            console.error("Network error fetching trips, will retry on reconnect.");
+        }
+    };
+
+    const loadAllData = () => {
+        fetchSacco();
+        fetchTrips();
+    };
+
+    loadAllData();
+    window.addEventListener('network-restored', loadAllData);
 
     // Subscribe to real-time Postgres changes for GPS updates
     const channel = supabase
@@ -111,6 +125,7 @@ function PassengerView() {
         .subscribe();
 
     return () => {
+        window.removeEventListener('network-restored', loadAllData);
         supabase.removeChannel(channel);
     };
   }, []);
@@ -447,9 +462,36 @@ const SuperAdminRoute = ({ children }) => {
 };
 
 function App() {
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => {
+      setIsOffline(false);
+      // Broadcast an event so components can automatically retry failed fetches
+      window.dispatchEvent(new CustomEvent('network-restored'));
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
+
   return (
     <AuthProvider>
-      <MainApp />
+      {isOffline && (
+        <div className="bg-rose-600 text-white text-center py-1.5 text-xs font-bold fixed top-0 w-full z-[999] flex justify-center items-center gap-2 shadow-md animate-in slide-in-from-top-2">
+          <svg className="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238L3 3" /></svg>
+          No internet connection. Waiting for network...
+        </div>
+      )}
+      <div className={isOffline ? "pt-8" : ""}>
+        <MainApp />
+      </div>
     </AuthProvider>
   );
 }
