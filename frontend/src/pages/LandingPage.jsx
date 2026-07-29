@@ -122,6 +122,14 @@ function LandingPage() {
                     )}
                 </div>
             </section>
+        {/* Footer */}
+            <footer className="bg-slate-900 text-slate-400 py-12 text-center border-t border-slate-800">
+                <p>&copy; {new Date().getFullYear()} Transy by Nairobi Transit Technologies. All rights reserved.</p>
+                <div className="mt-4 flex justify-center gap-6">
+                    <a href="#" className="hover:text-amber-500 transition-colors">Privacy Policy</a>
+                    <a href="#" className="hover:text-amber-500 transition-colors">Terms of Service</a>
+                </div>
+            </footer>
         </div>
     );
 }
