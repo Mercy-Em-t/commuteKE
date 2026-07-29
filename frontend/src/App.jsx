@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 import PassengerFooter from './components/Footer';
 import AdRotator from './components/AdRotator';
 import AdminReport from './pages/AdminReport';
@@ -523,6 +524,19 @@ const SuperAdminRoute = ({ children }) => {
 function App() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
+  // PWA update detection — fires when a new service worker is waiting
+  const {
+    needRefresh: [needRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered(r) {
+      // Poll every 60 seconds so long-lived sessions get notified of updates
+      if (r) {
+        setInterval(() => r.update(), 60 * 1000);
+      }
+    },
+  });
+
   useEffect(() => {
     const handleOffline = () => setIsOffline(true);
     const handleOnline = () => {
@@ -542,13 +556,27 @@ function App() {
 
   return (
     <AuthProvider>
+      {/* Offline banner */}
       {isOffline && (
         <div className="bg-rose-600 text-white text-center py-1.5 text-xs font-bold fixed top-0 w-full z-[999] flex justify-center items-center gap-2 shadow-md animate-in slide-in-from-top-2">
           <svg className="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238L3 3" /></svg>
           No internet connection. Waiting for network...
         </div>
       )}
-      <div className={isOffline ? "pt-8" : ""}>
+      {/* PWA Update Available banner */}
+      {needRefresh && (
+        <div className="bg-amber-500 text-slate-900 text-center py-2 text-xs font-bold fixed top-0 w-full z-[999] flex justify-center items-center gap-3 shadow-md animate-in slide-in-from-top-2">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          New version available!
+          <button
+            onClick={() => updateServiceWorker(true)}
+            className="bg-slate-900 text-white px-3 py-0.5 rounded-full font-bold hover:bg-slate-800 transition-colors"
+          >
+            Update Now
+          </button>
+        </div>
+      )}
+      <div className={isOffline || needRefresh ? 'pt-8' : ''}>
         <MainApp />
       </div>
     </AuthProvider>
