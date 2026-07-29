@@ -1,0 +1,22 @@
+{
+  "short_name": "Kiungani",
+  "name": "Kiungani Transy",
+  "icons": [
+    {
+      "src": "/transy_logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/transy_logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/?pwa=true",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#0f172a",
+  "description": "Live tracking for the Kiungani-CBD route."
+}
