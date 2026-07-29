@@ -1,8 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function LandingPage() {
     const [formData, setFormData] = useState({ name: '', email: '', type: 'General', message: '' });
     const [status, setStatus] = useState(null); // 'sending', 'success', 'error'
+    const [deferredPrompt, setDeferredPrompt] = useState(null);
+    const [isInstallable, setIsInstallable] = useState(false);
+
+    useEffect(() => {
+        const handleBeforeInstallPrompt = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+            setIsInstallable(true);
+        };
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setIsInstallable(false);
+        }
+        setDeferredPrompt(null);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -46,10 +68,18 @@ function LandingPage() {
                 <p className="text-xl sm:text-2xl text-slate-300 font-light max-w-2xl mx-auto">
                     Custom Commute Management for Saccos and Private Transport.
                 </p>
-                <div className="mt-8 flex flex-col items-center justify-center gap-3">
-                    <a href="/routes" onClick={(e) => navigateTo(e, '/routes')} className="bg-amber-500 text-slate-900 px-8 py-3 rounded-xl font-bold text-lg hover:bg-amber-400 transition-colors shadow-lg">
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="/routes" onClick={(e) => navigateTo(e, '/routes')} className="bg-amber-500 text-slate-900 px-8 py-3.5 rounded-xl font-bold text-lg hover:bg-amber-400 transition-colors shadow-lg">
                         View Live Routes
                     </a>
+                    {isInstallable && (
+                        <button onClick={handleInstallClick} className="bg-white text-slate-900 px-8 py-3.5 rounded-xl font-bold text-lg hover:bg-slate-100 transition-colors shadow-lg flex items-center gap-2">
+                            <svg className="w-6 h-6 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            Install App
+                        </button>
+                    )}
+                </div>
+                <div className="mt-4">
                     <span className="text-sm text-slate-400 font-medium bg-slate-800/50 px-4 py-1.5 rounded-full backdrop-blur-sm border border-slate-700">
                         No account required for passengers
                     </span>
@@ -79,8 +109,9 @@ function LandingPage() {
             </section>
 
             {/* Contact / Inquiry Form */}
-            <section className="bg-slate-100 py-16 px-4">
-                <div className="max-w-xl mx-auto bg-white p-8 rounded-3xl shadow-xl border border-slate-200">
+            <section className="bg-slate-100 py-16 px-4 border-t border-slate-200">
+                <div className="max-w-xl mx-auto bg-white p-8 rounded-3xl shadow-xl border border-slate-200 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-amber-500"></div>
                     <h2 className="text-2xl font-bold text-slate-800 mb-2">Get in Touch</h2>
                     <p className="text-slate-500 mb-6">Want to deploy Transy for your Sacco? Send us an inquiry.</p>
                     
@@ -92,15 +123,15 @@ function LandingPage() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Name</label>
-                                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border-slate-300 rounded-lg p-3 bg-slate-50 border focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+                                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border-slate-300 rounded-lg p-3 bg-slate-50 border focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
-                                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full border-slate-300 rounded-lg p-3 bg-slate-50 border focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+                                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full border-slate-300 rounded-lg p-3 bg-slate-50 border focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Inquiry Type</label>
-                                <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full border-slate-300 rounded-lg p-3 bg-slate-50 border focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                                <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full border-slate-300 rounded-lg p-3 bg-slate-50 border focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
                                     <option>General Inquiry</option>
                                     <option>Sacco Partnership</option>
                                     <option>Ad Placements</option>
@@ -110,7 +141,7 @@ function LandingPage() {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Message</label>
-                                <textarea required rows="4" value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} className="w-full border-slate-300 rounded-lg p-3 bg-slate-50 border focus:border-sky-500 focus:ring-1 focus:ring-sky-500"></textarea>
+                                <textarea required rows="4" value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} className="w-full border-slate-300 rounded-lg p-3 bg-slate-50 border focus:border-amber-500 focus:ring-1 focus:ring-amber-500"></textarea>
                             </div>
                             
                             {status === 'error' && <p className="text-red-500 text-sm font-semibold">Failed to send message. Please try again.</p>}
@@ -122,12 +153,31 @@ function LandingPage() {
                     )}
                 </div>
             </section>
-        {/* Footer */}
-            <footer className="bg-slate-900 text-slate-400 py-12 text-center border-t border-slate-800">
-                <p>&copy; {new Date().getFullYear()} Transy by The Modern Savannah. All rights reserved.</p>
-                <div className="mt-4 flex justify-center gap-6">
-                    <a href="#" className="hover:text-amber-500 transition-colors">Privacy Policy</a>
-                    <a href="#" className="hover:text-amber-500 transition-colors">Terms of Service</a>
+            
+            {/* Footer */}
+            <footer className="bg-slate-900 pt-16 pb-8 border-t-[12px] border-amber-500">
+                <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
+                    <div className="flex items-center gap-4">
+                        <img src="/transy_logo.jpg" alt="Transy" className="w-12 h-12 rounded-full border-2 border-amber-500" />
+                        <div>
+                            <h3 className="text-white font-black text-xl tracking-tight">TRANSY</h3>
+                            <p className="text-slate-400 text-sm font-medium">by The Modern Savannah</p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row gap-6 sm:gap-12 text-sm font-semibold text-slate-300">
+                        <a href="/routes" onClick={(e) => navigateTo(e, '/routes')} className="hover:text-amber-500 transition-colors">Live Routes</a>
+                        <a href="https://tmsavannah.com" target="_blank" rel="noreferrer" className="hover:text-amber-500 transition-colors">About Us</a>
+                        <a href="#" className="hover:text-amber-500 transition-colors">Privacy & Terms</a>
+                        {isInstallable && (
+                            <button onClick={handleInstallClick} className="text-amber-500 hover:text-amber-400 transition-colors">
+                                Install PWA App
+                            </button>
+                        )}
+                    </div>
+                </div>
+                <div className="max-w-6xl mx-auto px-4 mt-12 pt-8 border-t border-slate-800/60 text-center">
+                    <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">&copy; {new Date().getFullYear()} The Modern Savannah. All rights reserved.</p>
                 </div>
             </footer>
         </div>
