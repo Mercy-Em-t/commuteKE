@@ -106,7 +106,6 @@ function RouteSelector() {
                                     </div>
                                 </div>
 
-                                {/* Actions */}
                                 {route.status === 'Active' && (
                                     <div className="px-5 pb-5 flex gap-3">
                                         <button
@@ -117,6 +116,11 @@ function RouteSelector() {
                                         </button>
                                         <a
                                             href={`/track/${route.id}`}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                window.history.pushState({}, '', `/track/${route.id}`);
+                                                window.dispatchEvent(new PopStateEvent('popstate'));
+                                            }}
                                             className="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl transition-all text-sm"
                                         >
                                             📍 Track Live
@@ -137,7 +141,17 @@ function RouteSelector() {
                 </div>
 
                 <div className="mt-8 text-center">
-                    <a href="/" className="text-sky-600 font-bold hover:underline">&larr; Back to Home</a>
+                    <a 
+                        href="/" 
+                        onClick={(e) => {
+                            e.preventDefault();
+                            window.history.pushState({}, '', '/');
+                            window.dispatchEvent(new PopStateEvent('popstate'));
+                        }}
+                        className="text-sky-600 font-bold hover:underline"
+                    >
+                        &larr; Back to Home
+                    </a>
                 </div>
             </div>
 

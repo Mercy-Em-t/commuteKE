@@ -25,12 +25,18 @@ function LandingPage() {
         }
     };
 
+    const navigateTo = (e, path) => {
+        e.preventDefault();
+        window.history.pushState({}, '', path);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+
     return (
         <div className="min-h-screen bg-white font-sans flex flex-col">
             {/* Hero Section */}
             <header className="bg-slate-900 text-white p-8 sm:p-16 text-center border-b-8 border-amber-500 relative">
                 <div className="absolute top-4 right-4 sm:top-8 sm:right-8 flex flex-col items-end">
-                    <a href="/login" className="text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg transition-colors border border-slate-700">
+                    <a href="/login" onClick={(e) => navigateTo(e, '/login')} className="text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg transition-colors border border-slate-700">
                         Login
                     </a>
                     <span className="text-xs text-slate-400 mt-1 font-medium">For Sacco Staff Only</span>
@@ -41,7 +47,7 @@ function LandingPage() {
                     Custom Commute Management for Saccos and Private Transport.
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3">
-                    <a href="/routes" className="bg-amber-500 text-slate-900 px-8 py-3 rounded-xl font-bold text-lg hover:bg-amber-400 transition-colors shadow-lg">
+                    <a href="/routes" onClick={(e) => navigateTo(e, '/routes')} className="bg-amber-500 text-slate-900 px-8 py-3 rounded-xl font-bold text-lg hover:bg-amber-400 transition-colors shadow-lg">
                         View Live Routes
                     </a>
                     <span className="text-sm text-slate-400 font-medium bg-slate-800/50 px-4 py-1.5 rounded-full backdrop-blur-sm border border-slate-700">

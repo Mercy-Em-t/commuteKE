@@ -131,7 +131,15 @@ function PassengerView() {
       <div className="w-full sm:max-w-md flex flex-col min-h-screen bg-white shadow-xl relative">
         
         <header className="bg-slate-900 shadow-sm p-4 text-center z-10 relative border-b-4 border-amber-500 flex justify-between items-center">
-          <a href="/routes" className="text-slate-400 hover:text-white transition-colors">
+          <a 
+            href="/routes" 
+            onClick={(e) => {
+              e.preventDefault();
+              window.history.pushState({}, '', '/routes');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }}
+            className="text-slate-400 hover:text-white transition-colors"
+          >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           </a>
           <div>
