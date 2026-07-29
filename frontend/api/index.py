@@ -386,3 +386,160 @@ async def broadcast_to_subscribers(broadcast: SaccoBroadcast):
         "notified": len(subs),
         "message": f"Broadcast queued for {len(subs)} subscriber(s)."
     }
+
+
+# ---------------------------------------------------------------------------
+# Staff Invite Endpoint
+# ---------------------------------------------------------------------------
+
+class StaffInviteRequest(BaseModel):
+    email: str
+    role: str  # 'DRIVER' | 'CLERK'
+    tenant_id: str
+
+@app.post("/api/v1/staff/invite")
+async def invite_staff(req: StaffInviteRequest):
+    """
+    Sends a Supabase magic-link invite to the staff member via TMS Mail Server.
+    After sign-up, admin must assign their role in the Staff tab.
+    """
+    import sys
+    sys.path.append(os.path.dirname(__file__))
+    from mail_client import send_transactional_email
+
+    SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
+    SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+    invite_link = f"https://commute.tmsavannah.com/login"
+    user_id = None
+
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE:
+        import requests as http
+        # Use Supabase Admin API to generate a magic link invite
+        resp = http.post(
+            f"{SUPABASE_URL}/auth/v1/admin/users",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE}",
+                "Content-Type": "application/json"
+            },
+            json={"email": req.email, "email_confirm": False, "send_email": False}
+        )
+        if resp.status_code in [200, 201]:
+            user_data = resp.json()
+            user_id = user_data.get("id")
+            # Assign role in user_roles table
+            http.post(
+                f"{SUPABASE_URL}/rest/v1/user_roles",
+                headers={
+                    "apikey": SUPABASE_SERVICE_ROLE,
+                    "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                },
+                json={"user_id": user_id, "tenant_id": req.tenant_id, "role": req.role}
+            )
+            # Generate a magic link
+            link_resp = http.post(
+                f"{SUPABASE_URL}/auth/v1/admin/generate_link",
+                headers={
+                    "apikey": SUPABASE_SERVICE_ROLE,
+                    "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE}",
+                    "Content-Type": "application/json"
+                },
+                json={"type": "magiclink", "email": req.email}
+            )
+            if link_resp.ok:
+                invite_link = link_resp.json().get("action_link", invite_link)
+
+    role_label = req.role.capitalize()
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#0f172a;border-radius:16px;overflow:hidden">
+      <div style="background:#f59e0b;padding:24px;text-align:center">
+        <img src="https://commute.tmsavannah.com/transy_logo.jpg" width="64" height="64"
+             style="border-radius:50%;border:3px solid #fff" alt="Transy Logo"/>
+        <h1 style="color:#0f172a;font-size:24px;margin:12px 0 0">You're invited to Transy</h1>
+      </div>
+      <div style="padding:32px">
+        <p style="color:#e2e8f0;font-size:15px;line-height:1.6">
+          You have been invited to join the Transy operations platform as a
+          <strong style="color:#f59e0b">{role_label}</strong>.
+        </p>
+        <p style="color:#94a3b8;font-size:14px;margin-top:8px">
+          As a <strong>{role_label}</strong>, you will use Transy to
+          {'update your trip status and share your GPS location.' if req.role == 'DRIVER' else 'manage the live dispatch board, swap vehicles, and notify passengers.'}
+        </p>
+        <div style="text-align:center;margin:32px 0">
+          <a href="{invite_link}" style="background:#f59e0b;color:#0f172a;font-weight:bold;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:16px;display:inline-block">
+            Set Up My Account →
+          </a>
+        </div>
+        <p style="color:#64748b;font-size:12px;text-align:center">
+          This link was sent by your Sacco Manager via Transy by The Modern Savannah.
+          If you were not expecting this, please ignore it.
+        </p>
+      </div>
+    </div>
+    """
+
+    result = send_transactional_email(
+        to=req.email,
+        subject=f"You're invited to Transy as a {role_label}",
+        html=html
+    )
+
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail="Mail server error. Invite not sent.")
+
+    return {"status": "success", "message": f"Invite dispatched to {req.email} via TMS Mail Server."}
+
+
+# ---------------------------------------------------------------------------
+# Clerk Broadcast Notify Endpoint
+# ---------------------------------------------------------------------------
+
+class ClerkBroadcastRequest(BaseModel):
+    tenant_id: str
+    trip_id: str
+    bus_id: str
+    status: str
+    message: str
+
+@app.post("/api/v1/notify/broadcast")
+async def clerk_broadcast(req: ClerkBroadcastRequest):
+    """
+    Clerk fires this when they want to notify all WhatsApp subscribers
+    for a trip. Immediately sends — no admin approval needed.
+    """
+    import sys
+    sys.path.append(os.path.dirname(__file__))
+    from whatsapp_client import send_whatsapp_template
+
+    SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
+    SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+    notified = 0
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE:
+        import requests as http
+        # Fetch all subscribers for this tenant
+        subs_resp = http.get(
+            f"{SUPABASE_URL}/rest/v1/passenger_subscriptions?tenant_id=eq.{req.tenant_id}&select=phone_number",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE}"
+            }
+        )
+        if subs_resp.ok:
+            subs = subs_resp.json()
+            for sub in subs:
+                phone = sub.get("phone_number")
+                if phone:
+                    send_whatsapp_template(
+                        to_number=phone,
+                        template_name="trip_status_update",
+                        params=[req.bus_id, req.status.replace("_", " ")]
+                    )
+                    notified += 1
+
+    print(f"[Clerk Broadcast] Trip {req.trip_id} → {req.status} → {notified} passengers notified")
+    return {"status": "success", "notified": notified, "message": req.message}

@@ -88,3 +88,41 @@ def send_inquiry_email(user_name: str, user_email: str, inquiry_type: str, messa
     except Exception as e:
         print(f"[Mail Error] Failed to send via TM Savannah Mail Server: {e}")
         return {"success": False, "error": str(e)}
+
+
+def send_transactional_email(to: str, subject: str, html: str, reply_to: str = None) -> dict:
+    """
+    Generic transactional email sender — routes ALL system mail through TMS Mail Server.
+    Use this for: staff invites, password resets, notifications, alerts, system messages.
+    Never use SMTP directly. Always use this function.
+    """
+    token = _get_highway_token()
+    if not token:
+        print(f"[Mail] MAIL_SECRET not set — transactional email to {to} skipped.")
+        return {"success": True, "mock": True}
+
+    payload = {
+        "client_id": CLIENT_ID,
+        "to": to,
+        "subject": subject,
+        "html": html,
+        "message_type": "transactional",
+    }
+    if reply_to:
+        payload["replyTo"] = reply_to
+
+    try:
+        response = requests.post(
+            MAIL_DISPATCH_URL,
+            json=payload,
+            headers={
+                "Content-Type": "application/json",
+                "x-highway-token": token
+            },
+            timeout=10
+        )
+        response.raise_for_status()
+        return {"success": True, "response": response.json()}
+    except Exception as e:
+        print(f"[Mail Error] Transactional email to {to} failed: {e}")
+        return {"success": False, "error": str(e)}
