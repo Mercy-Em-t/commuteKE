@@ -16,7 +16,7 @@ export default defineConfig({
         type: 'module',
       },
       manifest: {
-        name: "Transy - Sacco Commute",
+        name: "Transy by Nairobi Transit Technologies",
         short_name: "Transy",
         description: "Real-time transport dispatch and passenger tracking for Saccos.",
         theme_color: "#0f172a",

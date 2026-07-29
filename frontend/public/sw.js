@@ -3,6 +3,10 @@ import { precacheAndRoute } from 'workbox-precaching';
 // Precaching all the static assets from Vite build
 precacheAndRoute(self.__WB_MANIFEST || []);
 
+// Aggressively force new updates to take over immediately
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', () => self.clients.claim());
+
 // Listen for push events
 self.addEventListener('push', function (event) {
   if (event.data) {
