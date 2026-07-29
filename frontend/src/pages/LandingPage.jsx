@@ -55,6 +55,14 @@ function LandingPage() {
 
     return (
         <div className="min-h-screen bg-white font-sans flex flex-col">
+            {isInstallable && (
+                <div className="bg-sky-50 border-b border-sky-100 px-4 py-2 flex justify-between items-center text-sm">
+                    <span className="text-sky-800 font-medium">Get the Transy App for a better experience!</span>
+                    <button onClick={handleInstallClick} className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-1.5 rounded-full font-bold transition-colors shadow-sm">
+                        Install Now
+                    </button>
+                </div>
+            )}
             {/* Hero Section */}
             <header className="bg-slate-900 text-white p-8 sm:p-16 text-center border-b-8 border-amber-500 relative">
                 <div className="absolute top-4 right-4 sm:top-8 sm:right-8 flex flex-col items-end">
@@ -72,12 +80,6 @@ function LandingPage() {
                     <a href="/routes" onClick={(e) => navigateTo(e, '/routes')} className="bg-amber-500 text-slate-900 px-8 py-3.5 rounded-xl font-bold text-lg hover:bg-amber-400 transition-colors shadow-lg">
                         View Live Routes
                     </a>
-                    {isInstallable && (
-                        <button onClick={handleInstallClick} className="bg-white text-slate-900 px-8 py-3.5 rounded-xl font-bold text-lg hover:bg-slate-100 transition-colors shadow-lg flex items-center gap-2">
-                            <svg className="w-6 h-6 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                            Install App
-                        </button>
-                    )}
                 </div>
                 <div className="mt-4">
                     <span className="text-sm text-slate-400 font-medium bg-slate-800/50 px-4 py-1.5 rounded-full backdrop-blur-sm border border-slate-700">
@@ -154,31 +156,14 @@ function LandingPage() {
                 </div>
             </section>
             
-            {/* Footer */}
-            <footer className="bg-slate-900 pt-16 pb-8 border-t-[12px] border-amber-500">
-                <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
-                    <div className="flex items-center gap-4">
-                        <img src="/transy_logo.jpg" alt="Transy" className="w-12 h-12 rounded-full border-2 border-amber-500" />
-                        <div>
-                            <h3 className="text-white font-black text-xl tracking-tight">TRANSY</h3>
-                            <p className="text-slate-400 text-sm font-medium">by The Modern Savannah</p>
-                        </div>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row gap-6 sm:gap-12 text-sm font-semibold text-slate-300">
-                        <a href="/routes" onClick={(e) => navigateTo(e, '/routes')} className="hover:text-amber-500 transition-colors">Live Routes</a>
-                        <a href="https://tmsavannah.com" target="_blank" rel="noreferrer" className="hover:text-amber-500 transition-colors">About Us</a>
-                        <a href="#" className="hover:text-amber-500 transition-colors">Privacy & Terms</a>
-                        {isInstallable && (
-                            <button onClick={handleInstallClick} className="text-amber-500 hover:text-amber-400 transition-colors">
-                                Install PWA App
-                            </button>
-                        )}
-                    </div>
+            {/* Flat Footer */}
+            <footer className="bg-slate-900 py-6 text-center text-slate-400 text-sm border-t-4 border-amber-500">
+                <div className="flex justify-center gap-6 mb-2">
+                    <a href="https://tmsavannah.com" target="_blank" rel="noreferrer" className="hover:text-amber-500 transition-colors">About Us</a>
+                    <a href="/privacy" onClick={(e) => navigateTo(e, '/privacy')} className="hover:text-amber-500 transition-colors">Privacy Policy</a>
+                    <a href="/terms" onClick={(e) => navigateTo(e, '/terms')} className="hover:text-amber-500 transition-colors">Terms of Service</a>
                 </div>
-                <div className="max-w-6xl mx-auto px-4 mt-12 pt-8 border-t border-slate-800/60 text-center">
-                    <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">&copy; {new Date().getFullYear()} The Modern Savannah. All rights reserved.</p>
-                </div>
+                <p>&copy; {new Date().getFullYear()} Transy by The Modern Savannah. All rights reserved.</p>
             </footer>
         </div>
     );
