@@ -15,6 +15,17 @@ function AdminDashboard() {
     const [showAddVehicle, setShowAddVehicle] = useState(false);
     const [isKiserianLive, setIsKiserianLive] = useState(false);
 
+    // Sacco Settings State
+    const [saccoDetails, setSaccoDetails] = useState({
+        whatsapp_channel_link: '',
+        manager_phone: '',
+        parcels_cbd_phone: '',
+        parcels_cbd_contact: '',
+        parcels_office_phone: '',
+        parcels_office_address: ''
+    });
+    const [isSavingSacco, setIsSavingSacco] = useState(false);
+
     // CSV Download Helper
     const downloadCSV = (data, filename) => {
         if (!data || !data.length) return alert("No data to export.");
@@ -44,9 +55,14 @@ function AdminDashboard() {
             const { data, error } = await supabase.from('active_trips').select('*').order('scheduled_departure', { ascending: true });
             if (data) setTrips(data);
         };
+        const fetchSacco = async () => {
+            const { data, error } = await supabase.from('saccos').select('*').eq('id', 'kiungani-01').single();
+            if (data) setSaccoDetails(data);
+        };
 
         fetchFleet();
         fetchTrips();
+        fetchSacco();
 
         const fleetChannel = supabase.channel('public:fleet')
             .on('postgres', { event: '*', schema: 'public', table: 'fleet' }, () => fetchFleet())
@@ -80,6 +96,22 @@ function AdminDashboard() {
         if (error) alert("Failed to generate trip: " + error.message);
     };
 
+    const saveSaccoDetails = async (e) => {
+        e.preventDefault();
+        setIsSavingSacco(true);
+        const { error } = await supabase.from('saccos').update({
+            whatsapp_channel_link: saccoDetails.whatsapp_channel_link,
+            manager_phone: saccoDetails.manager_phone,
+            parcels_cbd_phone: saccoDetails.parcels_cbd_phone,
+            parcels_cbd_contact: saccoDetails.parcels_cbd_contact,
+            parcels_office_phone: saccoDetails.parcels_office_phone,
+            parcels_office_address: saccoDetails.parcels_office_address
+        }).eq('id', 'kiungani-01');
+        setIsSavingSacco(false);
+        if (error) alert("Failed to save Sacco settings: " + error.message);
+        else alert("Settings securely saved!");
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 p-8 font-sans">
             <div className="max-w-6xl mx-auto relative">
@@ -96,7 +128,7 @@ function AdminDashboard() {
 
                 {/* Tabs Navigation */}
                 <div className="flex flex-wrap gap-4 mb-8">
-                    {['SCHEDULE', 'FLEET', 'ROUTES', 'LEGAL', 'ANALYTICS']
+                    {['SCHEDULE', 'FLEET', 'ROUTES', 'LEGAL', 'ANALYTICS', 'SETTINGS']
                         .filter(tab => tab !== 'ANALYTICS' || userRole?.role === 'SYSTEM_ADMIN')
                         .map(tab => (
                         <button 
@@ -431,6 +463,11 @@ function AdminDashboard() {
                             </div>
                             <a 
                                 href="/admin/report" 
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    window.history.pushState({}, '', '/admin/report');
+                                    window.dispatchEvent(new PopStateEvent('popstate'));
+                                }}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold px-4 py-2 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm flex items-center gap-2"
@@ -497,6 +534,85 @@ function AdminDashboard() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {activeTab === 'SETTINGS' && saccoDetails && (
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-black text-slate-800">Sacco Account Details</h2>
+                            <p className="text-slate-500 font-medium mt-1">Manage public contact numbers and social channels.</p>
+                        </div>
+                        
+                        <form onSubmit={saveSaccoDetails} className="space-y-6 max-w-2xl">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">WhatsApp Broadcast Channel Link</label>
+                                <input 
+                                    type="url" 
+                                    value={saccoDetails.whatsapp_channel_link || ''}
+                                    onChange={(e) => setSaccoDetails({...saccoDetails, whatsapp_channel_link: e.target.value})}
+                                    placeholder="https://whatsapp.com/channel/..."
+                                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-medium"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">Passengers can join this channel to get broadcast updates.</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Manager Phone</label>
+                                    <input 
+                                        type="tel" 
+                                        value={saccoDetails.manager_phone || ''}
+                                        onChange={(e) => setSaccoDetails({...saccoDetails, manager_phone: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-medium"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Parcels CBD Phone</label>
+                                    <input 
+                                        type="tel" 
+                                        value={saccoDetails.parcels_cbd_phone || ''}
+                                        onChange={(e) => setSaccoDetails({...saccoDetails, parcels_cbd_phone: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-medium"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Parcels CBD Contact Person</label>
+                                    <input 
+                                        type="text" 
+                                        value={saccoDetails.parcels_cbd_contact || ''}
+                                        onChange={(e) => setSaccoDetails({...saccoDetails, parcels_cbd_contact: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-medium"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Parcels Office Phone (Kiserian)</label>
+                                    <input 
+                                        type="tel" 
+                                        value={saccoDetails.parcels_office_phone || ''}
+                                        onChange={(e) => setSaccoDetails({...saccoDetails, parcels_office_phone: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-medium"
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Parcels Office Address (Kiserian)</label>
+                                    <input 
+                                        type="text" 
+                                        value={saccoDetails.parcels_office_address || ''}
+                                        onChange={(e) => setSaccoDetails({...saccoDetails, parcels_office_address: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-medium"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <button 
+                                type="submit" 
+                                disabled={isSavingSacco}
+                                className="mt-8 bg-sky-600 hover:bg-sky-500 text-white font-bold px-8 py-4 rounded-xl shadow-lg shadow-sky-500/20 transition-all disabled:opacity-50"
+                            >
+                                {isSavingSacco ? 'Saving...' : 'Save Settings'}
+                            </button>
+                        </form>
                     </div>
                 )}
 
