@@ -104,6 +104,8 @@ function LandingPage() {
                                     <option>General Inquiry</option>
                                     <option>Sacco Partnership</option>
                                     <option>Ad Placements</option>
+                                    <option>Compliment</option>
+                                    <option>Complaint/Feedback</option>
                                 </select>
                             </div>
                             <div>
