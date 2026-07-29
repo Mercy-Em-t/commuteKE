@@ -30,13 +30,12 @@ function ClerkPortal() {
         setTimeout(() => setActionFeedback(null), 4000);
     };
 
-    const logAction = async (actionType, tripId, scheduleId, details) => {
+    const logAction = async (actionType, tripId, details) => {
         await supabase.from('clerk_actions_log').insert([{
             tenant_id: tenantId,
             clerk_user_id: user.id,
             action_type: actionType,
             trip_id: tripId || null,
-            schedule_id: scheduleId || null,
             details
         }]);
     };
@@ -68,7 +67,7 @@ function ClerkPortal() {
 
         if (!error) {
             setSchedules(prev => prev.map(t => t.id === trip.id ? { ...t, status: newStatus } : t));
-            await logAction('STATUS_CHANGE', trip.id, null, { old_status: trip.status, new_status: newStatus });
+            await logAction('STATUS_CHANGE', trip.id, { old_status: trip.status, new_status: newStatus });
             showFeedback(`Trip ${trip.vehicle_registration || trip.bus_id} → ${newStatus}`);
         } else {
             showFeedback('Failed to update status: ' + error.message, 'error');
@@ -86,7 +85,7 @@ function ClerkPortal() {
 
         if (!error) {
             setSchedules(prev => prev.map(t => t.id === tripId ? { ...t, [field]: swapValue } : t));
-            await logAction(field === 'vehicle_registration' ? 'VEHICLE_SWAP' : 'DRIVER_SWAP', tripId, null, {
+            await logAction(field === 'vehicle_registration' ? 'VEHICLE_SWAP' : 'DRIVER_SWAP', tripId, {
                 field,
                 old_value: trip?.[field],
                 new_value: swapValue
@@ -108,7 +107,7 @@ function ClerkPortal() {
 
         if (!error) {
             setSchedules(prev => prev.map(t => t.id === trip.id ? { ...t, status: 'CANCELLED' } : t));
-            await logAction('TRIP_PULLED', trip.id, null, { reason: 'Clerk cancelled from dispatch board' });
+            await logAction('TRIP_PULLED', trip.id, { reason: 'Clerk cancelled from dispatch board' });
             showFeedback('Trip pulled. Passengers see: CANCELLED.');
         } else {
             showFeedback('Failed to pull trip: ' + error.message, 'error');
@@ -123,7 +122,7 @@ function ClerkPortal() {
 
         if (!error) {
             setSchedules(prev => prev.map(t => t.id === trip.id ? { ...t, status: 'SCHEDULED' } : t));
-            await logAction('TRIP_PUSHED', trip.id, null, { reinstated: true });
+            await logAction('TRIP_PUSHED', trip.id, { reinstated: true });
             showFeedback('Trip reinstated as SCHEDULED.');
         } else {
             showFeedback('Failed to reinstate trip: ' + error.message, 'error');
@@ -147,7 +146,7 @@ function ClerkPortal() {
             });
             if (res.ok) {
                 setNotifyStatus(prev => ({ ...prev, [trip.id]: 'done' }));
-                await logAction('NOTIFICATION_SENT', trip.id, null, { status: trip.status });
+                await logAction('NOTIFICATION_SENT', trip.id, { status: trip.status });
                 showFeedback('WhatsApp notification sent to all subscribers.');
             } else {
                 setNotifyStatus(prev => ({ ...prev, [trip.id]: 'error' }));
