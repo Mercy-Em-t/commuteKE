@@ -61,6 +61,63 @@ async def submit_inquiry(req: InquiryRequest):
         return {"status": "error", "message": "Failed to dispatch email"}
     return {"status": "success", "message": "Inquiry sent successfully"}
 
+class WhatsAppSubscription(BaseModel):
+    phone_number: str
+    tenant_id: str
+    route_id: str
+    passenger_name: str
+
+@app.post("/api/v1/subscribe/whatsapp")
+async def subscribe_whatsapp(sub: WhatsAppSubscription):
+    import sys
+    import os
+    try:
+        sys.path.append(os.path.dirname(__file__))
+    except Exception:
+        pass
+    from whatsapp_client import send_whatsapp_template
+    
+    # In production, save the subscription to the database here (e.g. Supabase)
+    print(f"[DB MOCK] Saved WhatsApp sub for {sub.phone_number} on {sub.route_id}")
+    
+    # Send a welcome template right away to confirm
+    res = send_whatsapp_template(
+        to_number=sub.phone_number,
+        template_name="hello_world" # Replace with your approved Meta template name
+    )
+    return {"status": "success", "message": "Subscribed to WhatsApp alerts."}
+
+from fastapi import Query
+from fastapi.responses import PlainTextResponse
+
+@app.get("/api/v1/whatsapp/webhook")
+async def verify_whatsapp_webhook(
+    hub_mode: str = Query(None, alias="hub.mode"),
+    hub_challenge: str = Query(None, alias="hub.challenge"),
+    hub_verify_token: str = Query(None, alias="hub.verify_token"),
+):
+    """Webhook Verification for Meta"""
+    import sys
+    import os
+    try:
+        sys.path.append(os.path.dirname(__file__))
+    except Exception:
+        pass
+    from whatsapp_client import verify_webhook
+    
+    challenge = verify_webhook(hub_mode, hub_verify_token, hub_challenge)
+    if challenge is not None:
+        return PlainTextResponse(str(challenge))
+    raise HTTPException(status_code=403, detail="Verification failed")
+
+@app.post("/api/v1/whatsapp/webhook")
+async def receive_whatsapp_webhook(request: Request):
+    """Handle incoming messages and delivery statuses from Meta"""
+    payload = await request.json()
+    # Process the payload (e.g. mark messages as delivered or respond to user messages)
+    print("[WHATSAPP WEBHOOK RECEIVED]", payload)
+    return {"status": "received"}
+
 # Secret key for HMAC webhook verification
 WEBHOOK_SECRET = os.getenv("TM_SAVANNAH_WEBHOOK_SECRET", "super-secret-tm-savannah-key")
 
