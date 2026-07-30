@@ -258,6 +258,58 @@ def health_check():
 
 
 # ---------------------------------------------------------------------------
+# GPS Integrations (Scaffolded)
+# ---------------------------------------------------------------------------
+
+class HardwareWebhookPayload(BaseModel):
+    # This is a generic payload. Specific hardware providers will have their own schema.
+    device_id: str
+    latitude: float
+    longitude: float
+    speed: Optional[float] = None
+    timestamp: Optional[str] = None
+    # We can accept extra fields as kwargs or dict if needed in a more robust parser
+
+@app.post("/api/v1/gps/hardware-webhook")
+async def receive_hardware_gps_webhook(request: Request):
+    """
+    Receives raw webhook POSTs from third-party hardware trackers (e.g. Cartrack).
+    The exact parser logic will be implemented once provider API docs are available.
+    """
+    raw_payload = await request.json()
+    print(f"[HARDWARE GPS WEBHOOK] Received payload: {raw_payload}")
+    
+    # Implementation steps:
+    # 1. Parse device_id / Tracker UID from the specific vendor's payload format
+    # 2. Query `fleet` table: SELECT id FROM fleet WHERE tracker_id = device_id
+    # 3. Find the active trip for that fleet_id
+    # 4. Insert log into `gps_logs` and update `active_trips.current_location`
+    
+    return {"status": "received", "message": "Telemetry queued for ingestion"}
+
+async def poll_safaricom_lbs():
+    """
+    Background worker to poll Safaricom Daraja LBS API for vehicles using SAFARICOM_LBS.
+    """
+    while True:
+        try:
+            # 1. Query Supabase for active trips where fleet.tracking_provider == 'SAFARICOM_LBS'
+            # 2. For each active trip, get the driver's phone number
+            # 3. Call Daraja LBS API with the phone number
+            # 4. Update the active trip's location with the triangulated coordinates
+            pass
+        except Exception as e:
+            print(f"Error polling Safaricom LBS: {e}")
+        # Poll every 5 minutes
+        await asyncio.sleep(300)
+
+@app.on_event("startup")
+async def start_lbs_polling():
+    print("Starting Safaricom LBS polling task...")
+    asyncio.create_task(poll_safaricom_lbs())
+
+
+# ---------------------------------------------------------------------------
 # SACCO Management Endpoints
 # ---------------------------------------------------------------------------
 
@@ -288,8 +340,19 @@ async def list_saccos():
     SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
     SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE:
-        # Dev mode: return empty list
-        return {"saccos": [], "mock": True}
+        # Dev mode: return mock Kiungani SACCO
+        return {"saccos": [
+            {
+                "id": "mock-sacco-id-01",
+                "tenant_id": "kiungani-01",
+                "name": "Kiungani Shuttle Sacco",
+                "status": "ACTIVE",
+                "registration_number": "NTSA/SACCO/2024/001",
+                "fleet_count": 14,
+                "chairman_name": "Mock Chairman",
+                "primary_route": "Kiungani → CBD"
+            }
+        ], "mock": True}
     import requests as req
     resp = req.get(
         f"{SUPABASE_URL}/rest/v1/saccos?order=created_at.desc",

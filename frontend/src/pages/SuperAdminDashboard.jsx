@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 const API = import.meta.env.DEV ? 'http://127.0.0.1:8001' : '';
 
-const TABS = ['saccos', 'identities', 'inquiries'];
+const TABS = ['saccos', 'identities', 'inquiries', 'analytics', 'audit'];
 
 // ─── Utility ────────────────────────────────────────────────────────────────
 const Badge = ({ status }) => {
@@ -24,12 +24,13 @@ const Badge = ({ status }) => {
 };
 
 // ─── SACCO Form ──────────────────────────────────────────────────────────────
-const Field = ({ label, name, type = 'text', placeholder = '', value, onChange }) => (
+const Field = ({ label, name, type = 'text', placeholder = '', value, onChange, required }) => (
     <div>
         <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">{label}</label>
         <input
             type={type} value={value} onChange={onChange}
             placeholder={placeholder}
+            required={required}
             className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all"
         />
     </div>
@@ -39,15 +40,23 @@ function SaccoForm({ onSuccess }) {
     const [form, setForm] = useState({
         name: '', registration_number: '', chairman_name: '',
         contact_email: '', contact_phone: '',
-        base_region: '', primary_route: '', fleet_count: 0, notes: ''
+        base_region: '', primary_route: '', fleet_count: 0, notes: '',
+        whatsapp_channel_link: '', manager_phone: '', parcels_cbd_phone: '',
+        parcels_cbd_contact: '', parcels_office_phone: '', parcels_office_address: ''
     });
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState(null);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
-    const handleSubmit = async (e) => {
+    const handlePreSubmit = (e) => {
         e.preventDefault();
+        setShowConfirm(true);
+    };
+
+    const handleConfirmSubmit = async () => {
+        setShowConfirm(false);
         setLoading(true);
         setMsg(null);
         try {
@@ -59,48 +68,92 @@ function SaccoForm({ onSuccess }) {
             const data = await res.json();
             if (data.status === 'success' || data.status === 'mock') {
                 setMsg({ ok: true, text: data.message });
-                setForm({ name: '', registration_number: '', chairman_name: '', contact_email: '', contact_phone: '', base_region: '', primary_route: '', fleet_count: 0, notes: '' });
+                setForm({ 
+                    name: '', registration_number: '', chairman_name: '', contact_email: '', contact_phone: '', 
+                    base_region: '', primary_route: '', fleet_count: 0, notes: '',
+                    whatsapp_channel_link: '', manager_phone: '', parcels_cbd_phone: '', parcels_cbd_contact: '', parcels_office_phone: '', parcels_office_address: ''
+                });
                 onSuccess?.();
             } else {
-                setMsg({ ok: false, text: data.message || 'Unknown error.' });
+                setMsg({ ok: false, text: data.message || 'Unknown error. Registration failed.' });
             }
         } catch (err) {
-            setMsg({ ok: false, text: 'Network error — could not reach API.' });
+            setMsg({ ok: false, text: 'Network error — could not reach API. Please try again.' });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="SACCO Name" name="name" value={form.name} onChange={set('name')} placeholder="e.g. Kiungani Shuttle Sacco" />
-                <Field label="Reg. Number" name="registration_number" value={form.registration_number} onChange={set('registration_number')} placeholder="NTSA/SACCO/2024/001" />
-                <Field label="Chairman Name" name="chairman_name" value={form.chairman_name} onChange={set('chairman_name')} placeholder="Full name" />
-                <Field label="Contact Email" name="contact_email" type="email" value={form.contact_email} onChange={set('contact_email')} placeholder="sacco@example.com" />
-                <Field label="Contact Phone" name="contact_phone" value={form.contact_phone} onChange={set('contact_phone')} placeholder="+254 7XX XXX XXX" />
-                <Field label="Fleet Count" name="fleet_count" type="number" value={form.fleet_count} onChange={set('fleet_count')} placeholder="14" />
-                <Field label="Base Region" name="base_region" value={form.base_region} onChange={set('base_region')} placeholder="e.g. Kiambu County" />
-                <Field label="Primary Route" name="primary_route" value={form.primary_route} onChange={set('primary_route')} placeholder="e.g. Kiungani → CBD" />
-            </div>
-            <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Notes</label>
-                <textarea
-                    rows={3} value={form.notes} onChange={set('notes')}
-                    placeholder="Any additional notes about this SACCO..."
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all resize-none"
-                />
-            </div>
-            {msg && (
-                <p className={`text-sm font-semibold ${msg.ok ? 'text-emerald-400' : 'text-red-400'}`}>{msg.text}</p>
+        <>
+            <form onSubmit={handlePreSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="SACCO Name" name="name" value={form.name} onChange={set('name')} placeholder="e.g. Kiungani Shuttle Sacco" required />
+                    <Field label="Reg. Number" name="registration_number" value={form.registration_number} onChange={set('registration_number')} placeholder="NTSA/SACCO/2024/001" required />
+                    <Field label="Chairman Name" name="chairman_name" value={form.chairman_name} onChange={set('chairman_name')} placeholder="Full name" required />
+                    <Field label="Contact Email" name="contact_email" type="email" value={form.contact_email} onChange={set('contact_email')} placeholder="sacco@example.com" required />
+                    <Field label="Contact Phone" name="contact_phone" value={form.contact_phone} onChange={set('contact_phone')} placeholder="+254 7XX XXX XXX" required />
+                    <Field label="Fleet Count" name="fleet_count" type="number" value={form.fleet_count} onChange={set('fleet_count')} placeholder="14" required />
+                    <Field label="Base Region" name="base_region" value={form.base_region} onChange={set('base_region')} placeholder="e.g. Kiambu County" required />
+                    <Field label="Primary Route" name="primary_route" value={form.primary_route} onChange={set('primary_route')} placeholder="e.g. Kiungani → CBD" required />
+                </div>
+                
+                <div className="border-t border-slate-700 pt-4">
+                    <h4 className="text-sm font-black text-slate-300 mb-4 uppercase tracking-widest">Directory Contacts</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Field label="WhatsApp Channel Link" name="whatsapp_channel_link" value={form.whatsapp_channel_link} onChange={set('whatsapp_channel_link')} placeholder="https://whatsapp.com/channel/..." />
+                        <Field label="Manager Phone" name="manager_phone" value={form.manager_phone} onChange={set('manager_phone')} placeholder="+254 7XX XXX XXX" />
+                        <Field label="Parcels (CBD) Contact Person" name="parcels_cbd_contact" value={form.parcels_cbd_contact} onChange={set('parcels_cbd_contact')} placeholder="e.g. Ms Karimi" />
+                        <Field label="Parcels (CBD) Phone" name="parcels_cbd_phone" value={form.parcels_cbd_phone} onChange={set('parcels_cbd_phone')} placeholder="+254 7XX XXX XXX" />
+                        <Field label="Parcels Office Address" name="parcels_office_address" value={form.parcels_office_address} onChange={set('parcels_office_address')} placeholder="e.g. Maki Hse Katani Rd" />
+                        <Field label="Parcels Office Phone" name="parcels_office_phone" value={form.parcels_office_phone} onChange={set('parcels_office_phone')} placeholder="+254 7XX XXX XXX" />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Notes</label>
+                    <textarea
+                        rows={3} value={form.notes} onChange={set('notes')}
+                        placeholder="Any additional notes about this SACCO..."
+                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all resize-none"
+                    />
+                </div>
+                {msg && (
+                    <div className={`p-4 rounded-xl text-sm font-semibold border ${msg.ok ? 'bg-emerald-900/30 text-emerald-400 border-emerald-800' : 'bg-red-900/30 text-red-400 border-red-800'}`}>
+                        {msg.text}
+                    </div>
+                )}
+                <button
+                    type="submit" disabled={loading}
+                    className="w-full bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-black py-4 rounded-xl uppercase tracking-widest text-sm transition-all shadow-lg shadow-rose-900/30"
+                >
+                    {loading ? 'Preparing Statement...' : 'Register SACCO'}
+                </button>
+            </form>
+
+            {/* Confirmation Modal */}
+            {showConfirm && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="w-12 h-12 bg-rose-900/50 rounded-full flex items-center justify-center text-rose-500 mb-4 text-2xl border border-rose-800">
+                            ⚠
+                        </div>
+                        <h3 className="text-xl font-black text-white mb-2">Confirm Registration</h3>
+                        <p className="text-slate-400 text-sm mb-6">
+                            You are about to register <span className="font-bold text-white">{form.name}</span> into the system. Please ensure all details and directory contacts are correct before proceeding.
+                        </p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowConfirm(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={handleConfirmSubmit} className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black py-3 rounded-xl uppercase tracking-widest transition-colors shadow-lg">
+                                Confirm & Register
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
-            <button
-                type="submit" disabled={loading}
-                className="w-full bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-black py-3 rounded-xl uppercase tracking-widest text-sm transition-all shadow-lg shadow-rose-900/30"
-            >
-                {loading ? 'Creating…' : 'Register SACCO'}
-            </button>
-        </form>
+        </>
     );
 }
 
@@ -433,6 +486,192 @@ function InquiriesTab() {
     );
 }
 
+// ─── Analytics Tab (System-wide) ───────────────────────────────────────────────
+function AnalyticsTab() {
+    // In a real implementation, this would fetch aggregated system metrics
+    return (
+        <div className="bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mb-8 border-b pb-6 border-slate-700 flex justify-between items-center">
+                <div>
+                    <h2 className="text-2xl font-black text-white">System Analytics</h2>
+                    <p className="text-slate-400 mt-1">High-level visualization of operations and platform health across all SACCOs.</p>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-emerald-900/30 border border-emerald-800 p-6 rounded-xl">
+                    <p className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-1">Active Trips Today</p>
+                    <p className="text-4xl font-black text-white">142</p>
+                    <p className="text-sm text-emerald-500 mt-2 font-medium">+12% from yesterday</p>
+                </div>
+                <div className="bg-sky-900/30 border border-sky-800 p-6 rounded-xl">
+                    <p className="text-xs font-black text-sky-400 uppercase tracking-widest mb-1">Passenger Volume</p>
+                    <p className="text-4xl font-black text-white">4,591</p>
+                    <p className="text-sm text-sky-500 mt-2 font-medium">Tracking via web app</p>
+                </div>
+                <div className="bg-amber-900/30 border border-amber-800 p-6 rounded-xl">
+                    <p className="text-xs font-black text-amber-400 uppercase tracking-widest mb-1">Ad Impressions</p>
+                    <p className="text-4xl font-black text-white">12.4k</p>
+                    <p className="text-sm text-amber-500 mt-2 font-medium">Generating local revenue</p>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-700 p-6 h-64 flex flex-col items-center justify-center relative overflow-hidden">
+                    <p className="font-bold text-slate-500 mb-4 relative z-10">Peak Hours Visualization (System-Wide Mock)</p>
+                    <div className="absolute bottom-0 left-0 w-full flex items-end justify-around px-8 gap-2 h-32 opacity-50">
+                        <div className="w-full bg-rose-900 rounded-t-sm h-12"></div>
+                        <div className="w-full bg-rose-800 rounded-t-sm h-24"></div>
+                        <div className="w-full bg-rose-700 rounded-t-sm h-full"></div>
+                        <div className="w-full bg-rose-800 rounded-t-sm h-16"></div>
+                        <div className="w-full bg-rose-600 rounded-t-sm h-20"></div>
+                        <div className="w-full bg-rose-500 rounded-t-sm h-full"></div>
+                        <div className="w-full bg-rose-900 rounded-t-sm h-8"></div>
+                    </div>
+                </div>
+                
+                {/* AI Analytical Agent */}
+                <div className="lg:col-span-1 bg-slate-800 border border-indigo-900/50 rounded-xl p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] font-black px-3 py-1 uppercase tracking-widest rounded-bl-lg flex items-center gap-1">
+                        <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span> SYSTEM AI
+                    </div>
+                    <h3 className="font-black text-lg text-white mb-4 flex items-center gap-2">
+                        <span>🧠</span> AI Recommendations
+                    </h3>
+                    <div className="space-y-4">
+                        <div className="bg-slate-900 p-3 rounded-lg border border-slate-700 shadow-sm text-sm">
+                            <p className="font-bold text-amber-500 mb-1">⚠️ Fleet Deficit across 2 SACCOs</p>
+                            <p className="text-slate-400 font-medium">Multiple vehicles reported in maintenance. Platform-wide SLA adherence dropping.</p>
+                        </div>
+                        <div className="bg-slate-900 p-3 rounded-lg border border-slate-700 shadow-sm text-sm">
+                            <p className="font-bold text-emerald-500 mb-1">💡 Global Revenue Opportunity</p>
+                            <p className="text-slate-400 font-medium">High passenger web-app activity detected system-wide. Consider opening up premium ad slots.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Audit Logs Tab ────────────────────────────────────────────────────────────
+function AuditLogsTab() {
+    const [logs, setLogs] = useState([]);
+    const [saccoFilter, setSaccoFilter] = useState('ALL');
+    const [userFilter, setUserFilter] = useState('');
+    
+    useEffect(() => {
+        // Initial mock logs
+        const initialLogs = [
+            { id: 1, time: new Date(Date.now() - 1000 * 60 * 60).toLocaleTimeString(), sacco: 'kiungani-01', user: 'admin@kiungani.com', action: 'PROVISION_USER', details: 'Provisioned new driver driver@kiungani.com' },
+            { id: 2, time: new Date(Date.now() - 1000 * 60 * 30).toLocaleTimeString(), sacco: 'kiungani-01', user: 'clerk@kiungani.com', action: 'STATUS_CHANGE', details: 'Trip KCD 100X → BOARDING' },
+            { id: 3, time: new Date(Date.now() - 1000 * 60 * 15).toLocaleTimeString(), sacco: 'matatu-02', user: 'sysadmin', action: 'CREATE_SACCO', details: 'Created new tenant Matatu Express' },
+        ];
+        setLogs(initialLogs);
+
+        // Real-time stream mock
+        let counter = 4;
+        const interval = setInterval(() => {
+            const types = ['STATUS_CHANGE', 'VEHICLE_SWAP', 'NOTIFICATION_SENT', 'SYSTEM_LOGIN'];
+            const users = ['clerk@kiungani.com', 'admin@kiungani.com', 'sysadmin', 'dispatch@matatu.com'];
+            const saccos = ['kiungani-01', 'matatu-02', 'SYSTEM'];
+            
+            const type = types[Math.floor(Math.random() * types.length)];
+            const user = users[Math.floor(Math.random() * users.length)];
+            const sacco = saccos[Math.floor(Math.random() * saccos.length)];
+            
+            const newLog = {
+                id: counter++,
+                time: new Date().toLocaleTimeString(),
+                sacco,
+                user,
+                action: type,
+                details: `Simulated system event: ${type}`
+            };
+            
+            setLogs(prev => [newLog, ...prev].slice(0, 100));
+        }, 5000); // New log every 5 seconds
+
+        return () => clearInterval(interval);
+    }, []);
+
+    const filteredLogs = logs.filter(log => {
+        if (saccoFilter !== 'ALL' && log.sacco !== saccoFilter) return false;
+        if (userFilter && !log.user.toLowerCase().includes(userFilter.toLowerCase())) return false;
+        return true;
+    });
+
+    return (
+        <div className="bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-[600px]">
+            <div className="mb-8 border-b pb-6 border-slate-700 flex justify-between items-end">
+                <div>
+                    <h2 className="text-2xl font-black text-white">System Audit Logs</h2>
+                    <p className="text-slate-400 mt-1">Real-time data stream of interactions across all tenants.</p>
+                </div>
+                <div className="flex gap-4">
+                    <select 
+                        value={saccoFilter} 
+                        onChange={e => setSaccoFilter(e.target.value)}
+                        className="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm outline-none focus:border-sky-500"
+                    >
+                        <option value="ALL">All SACCOs</option>
+                        <option value="SYSTEM">System Level</option>
+                        <option value="kiungani-01">Kiungani (kiungani-01)</option>
+                        <option value="matatu-02">Matatu Express (matatu-02)</option>
+                    </select>
+                    <input 
+                        type="text" 
+                        placeholder="Filter by user..." 
+                        value={userFilter}
+                        onChange={e => setUserFilter(e.target.value)}
+                        className="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm outline-none focus:border-sky-500 w-48"
+                    />
+                </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-slate-700">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs uppercase tracking-widest font-bold">
+                            <th className="p-4">Time</th>
+                            <th className="p-4">Tenant / SACCO</th>
+                            <th className="p-4">User</th>
+                            <th className="p-4">Action</th>
+                            <th className="p-4">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody className="text-sm font-mono text-slate-300">
+                        {filteredLogs.map(log => (
+                            <tr key={log.id} className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors animate-in fade-in">
+                                <td className="p-4 whitespace-nowrap text-slate-500">{log.time}</td>
+                                <td className="p-4 whitespace-nowrap">
+                                    <span className="bg-slate-900 text-slate-300 px-2 py-1 rounded border border-slate-600 text-xs">
+                                        {log.sacco}
+                                    </span>
+                                </td>
+                                <td className="p-4 whitespace-nowrap text-sky-400">{log.user}</td>
+                                <td className="p-4 whitespace-nowrap">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                        log.action.includes('CREATE') || log.action.includes('PROVISION') ? 'bg-emerald-900/50 text-emerald-400' :
+                                        log.action.includes('CHANGE') || log.action.includes('SWAP') ? 'bg-amber-900/50 text-amber-400' :
+                                        'bg-sky-900/50 text-sky-400'
+                                    }`}>
+                                        {log.action}
+                                    </span>
+                                </td>
+                                <td className="p-4">{log.details}</td>
+                            </tr>
+                        ))}
+                        {filteredLogs.length === 0 && (
+                            <tr>
+                                <td colSpan="5" className="p-8 text-center text-slate-500 italic">No logs match the current filters.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 function SuperAdminDashboard() {
     const { signOut } = useAuth();
@@ -450,7 +689,7 @@ function SuperAdminDashboard() {
         }
     };
 
-    const tabLabel = { saccos: '🏛️ SACCOs', identities: '🛡️ Identities', inquiries: '📬 Inquiries' };
+    const tabLabel = { saccos: '🏛️ SACCOs', identities: '🛡️ Identities', inquiries: '📬 Inquiries', analytics: '📊 Analytics', audit: '📋 Audit Logs' };
 
     return (
         <div className="min-h-screen bg-slate-900 font-sans text-slate-100">
@@ -466,10 +705,15 @@ function SuperAdminDashboard() {
                     </h1>
                     <p className="text-slate-500 text-xs font-mono mt-0.5">TM Savannah · Privileged Access</p>
                 </div>
-                <button onClick={signOut}
-                    className="text-slate-400 hover:text-red-400 text-sm font-bold transition-colors">
-                    Sign Out →
-                </button>
+                <div className="flex items-center gap-4">
+                    <a href="/library/index.html" className="text-sky-400 hover:text-sky-300 text-sm font-bold flex items-center gap-2 border border-slate-700 bg-slate-800 px-3 py-1.5 rounded-lg transition-colors shadow-sm">
+                        <span>📚</span> Docs Library
+                    </a>
+                    <button onClick={signOut}
+                        className="text-slate-400 hover:text-red-400 text-sm font-bold transition-colors">
+                        Sign Out →
+                    </button>
+                </div>
             </header>
 
             {/* Easter Egg Panel */}
@@ -511,6 +755,8 @@ function SuperAdminDashboard() {
                 {tab === 'saccos'      && <SaccoTab />}
                 {tab === 'identities' && <IdentitiesTab />}
                 {tab === 'inquiries'  && <InquiriesTab />}
+                {tab === 'analytics'  && <AnalyticsTab />}
+                {tab === 'audit'      && <AuditLogsTab />}
             </main>
         </div>
     );

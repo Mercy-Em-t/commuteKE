@@ -73,12 +73,18 @@ function Sandbox() {
 
     return (
         <div className="min-h-screen bg-slate-900 text-slate-300 font-mono p-8 flex flex-col h-screen">
-            <header className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-3xl font-black text-amber-500 tracking-tighter">TransitOS // SANDBOX</h1>
-                    <p className="text-slate-500 text-sm mt-1">Live Telemetry & Persona Switcher</p>
+            <header className="bg-slate-900 shadow-sm p-6 text-center border-b border-slate-700 flex flex-col items-center">
+                <h1 className="text-3xl font-black text-rose-500 tracking-tight mb-2">TransitOS Sandbox</h1>
+                <p className="text-slate-400 font-medium mb-1">Local Testing Environment</p>
+                <div className="bg-rose-900/40 border border-rose-800 text-rose-300 text-xs font-bold px-3 py-1 rounded-full mb-6 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+                    Executing under: Kiungani Shuttle Sacco (kiungani-01)
                 </div>
-                <div className="flex gap-4">
+                
+                <div className="flex gap-4 justify-center">
+                    <a href="/library/index.html" target="_blank" className="bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold py-2 px-4 rounded border border-slate-700 flex items-center gap-2">
+                        <span>📚</span> Docs Library
+                    </a>
                     <button 
                         onClick={startSimulation} 
                         disabled={simulating}
@@ -86,7 +92,7 @@ function Sandbox() {
                     >
                         {simulating ? 'Ingesting Data Stream...' : '▶ Run "Busy Day" Simulation'}
                     </button>
-                    <a href="/" className="bg-slate-800 hover:bg-slate-700 text-white py-2 px-4 rounded border border-slate-700">Exit</a>
+                    <a href="/sadmin" className="bg-slate-800 hover:bg-slate-700 text-white py-2 px-4 rounded border border-slate-700">Exit</a>
                 </div>
             </header>
 
@@ -116,6 +122,17 @@ function Sandbox() {
                             </div>
                         </div>
                         <span className="text-amber-500">&rarr;</span>
+                    </a>
+
+                    <a href="/clerk" target="_blank" className="flex items-center justify-between bg-slate-700 p-4 rounded-lg hover:bg-purple-900 hover:border-purple-500 border border-slate-600 transition-all group">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl">📋</span>
+                            <div>
+                                <p className="font-bold text-white group-hover:text-purple-300">Clerk</p>
+                                <p className="text-xs text-slate-400">Manage Dispatch & Live Map</p>
+                            </div>
+                        </div>
+                        <span className="text-purple-500">&rarr;</span>
                     </a>
 
                     <a href="/track/kiungani" target="_blank" className="flex items-center justify-between bg-slate-700 p-4 rounded-lg hover:bg-emerald-900 hover:border-emerald-500 border border-slate-600 transition-all group">

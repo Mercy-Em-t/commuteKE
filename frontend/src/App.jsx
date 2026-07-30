@@ -391,7 +391,7 @@ function PassengerView() {
         {showSchedule && (
             <ScheduleDrawer
                 tenantId="kiungani-01"
-                routeName="Kiungani ⇄ Nairobi CBD"
+                routeName="Kiungani → Nairobi CBD"
                 onClose={() => setShowSchedule(false)}
             />
         )}
@@ -420,8 +420,8 @@ function ProtectedRoute({ children, requiredRole }) {
     }
 
     if (requiredRole && userRole?.role !== requiredRole) {
-        if (requiredRole === 'ADMIN' && userRole?.role === 'SYSTEM_ADMIN') {
-            // Allow SYSTEM_ADMIN to access ADMIN routes
+        if (userRole?.role === 'SYSTEM_ADMIN') {
+            // Allow SYSTEM_ADMIN to access ANY route
         } else {
             return (
             <div className="min-h-screen flex flex-col items-center justify-center font-sans text-center px-4">

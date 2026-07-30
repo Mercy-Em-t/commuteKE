@@ -248,13 +248,15 @@ function ClerkPortal() {
                                         <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
                                             <button
                                                 onClick={() => { setSwapModal({ tripId: trip.id, field: 'vehicle_registration' }); setSwapValue(trip.vehicle_registration || ''); }}
-                                                className="px-3 py-2 text-xs font-bold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
+                                                disabled={trip.status === 'IN_TRANSIT'}
+                                                className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors ${trip.status === 'IN_TRANSIT' ? 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                                             >
                                                 🔄 Swap Bus
                                             </button>
                                             <button
                                                 onClick={() => { setSwapModal({ tripId: trip.id, field: 'driver_phone' }); setSwapValue(trip.driver_phone || ''); }}
-                                                className="px-3 py-2 text-xs font-bold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
+                                                disabled={trip.status === 'IN_TRANSIT'}
+                                                className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors ${trip.status === 'IN_TRANSIT' ? 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                                             >
                                                 🔄 Swap Driver
                                             </button>

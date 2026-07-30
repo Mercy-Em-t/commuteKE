@@ -7,11 +7,12 @@ function AdminDashboard() {
     const [fleet, setFleet] = useState([]);
     const [loading, setLoading] = useState(true);
     const [trips, setTrips] = useState([]);
+    const [scheduleSlots, setScheduleSlots] = useState([]);
     const [activeTab, setActiveTab] = useState('SCHEDULE');
     
     // Editor State
     const [editingVehicle, setEditingVehicle] = useState(null);
-    const [newStatus, setNewStatus] = useState('');
+    const [editVehicleData, setEditVehicleData] = useState({ status: '', tracking_provider: 'DRIVER_APP', tracker_id: '' });
     const [showAddVehicle, setShowAddVehicle] = useState(false);
     const [isKiserianLive, setIsKiserianLive] = useState(false);
 
@@ -75,11 +76,20 @@ function AdminDashboard() {
                 .order('created_at', { ascending: false });
             if (data) setStaffList(data);
         };
+        const fetchScheduleSlots = async () => {
+            // Join with saccos to get the right slots
+            const { data: sacco } = await supabase.from('saccos').select('id').eq('tenant_id', 'kiungani-01').single();
+            if (sacco) {
+                const { data } = await supabase.from('schedule_slots').select('*').eq('sacco_id', sacco.id).order('sort_order');
+                if (data) setScheduleSlots(data);
+            }
+        };
 
         fetchFleet();
         fetchTrips();
         fetchSacco();
         fetchStaff();
+        fetchScheduleSlots();
 
         const fleetChannel = supabase.channel('public:fleet')
             .on('postgres', { event: '*', schema: 'public', table: 'fleet' }, () => fetchFleet())
@@ -97,9 +107,14 @@ function AdminDashboard() {
 
     const updateVehicleStatus = async () => {
         if (!editingVehicle) return;
-        const { error } = await supabase.from('fleet').update({ status: newStatus }).eq('id', editingVehicle.id);
+        const { error } = await supabase.from('fleet').update({ 
+            status: editVehicleData.status,
+            tracking_provider: editVehicleData.tracking_provider,
+            tracker_id: editVehicleData.tracker_id
+        }).eq('id', editingVehicle.id);
+        
         if (!error) setEditingVehicle(null);
-        else alert("Failed to update status.");
+        else alert("Failed to update vehicle.");
     };
 
     const inviteStaffMember = async (e) => {
@@ -176,10 +191,6 @@ function AdminDashboard() {
                         <h1 className="text-4xl font-black text-slate-800 tracking-tight">Sacco Operations</h1>
                         <p className="text-slate-500 mt-1 font-medium">Control Center & Provisioning Engine</p>
                     </div>
-                    <a href="/library/index.html" className="bg-white border border-slate-200 hover:border-sky-500 hover:text-sky-600 text-slate-600 px-4 py-2 rounded-lg font-bold shadow-sm transition-all flex items-center gap-2">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                        Documentation Library
-                    </a>
                 </header>
 
                 {/* Tabs Navigation */}
@@ -237,13 +248,22 @@ function AdminDashboard() {
                                                 </div>
                                                 <div>
                                                     <p className="font-black text-slate-800">{vehicle.registration_number}</p>
-                                                    <p className="text-xs font-bold mt-0.5 tracking-wider uppercase">
+                                                    <p className="text-xs font-bold mt-0.5 tracking-wider uppercase flex items-center gap-2">
                                                         <span className={vehicle.status === 'ACTIVE' ? 'text-emerald-500' : 'text-amber-500'}>{vehicle.status}</span>
+                                                        <span className="text-slate-400">·</span>
+                                                        <span className="text-slate-500">{vehicle.tracking_provider?.replace('_', ' ') || 'DRIVER APP'}</span>
                                                     </p>
                                                 </div>
                                             </div>
                                             <button 
-                                                onClick={() => { setEditingVehicle(vehicle); setNewStatus(vehicle.status); }}
+                                                onClick={() => { 
+                                                    setEditingVehicle(vehicle); 
+                                                    setEditVehicleData({ 
+                                                        status: vehicle.status, 
+                                                        tracking_provider: vehicle.tracking_provider || 'DRIVER_APP',
+                                                        tracker_id: vehicle.tracker_id || ''
+                                                    }); 
+                                                }}
                                                 className="text-sky-600 font-bold text-sm px-4 py-2 bg-sky-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-sky-100"
                                             >
                                                 Edit
@@ -258,14 +278,39 @@ function AdminDashboard() {
                                             e.preventDefault();
                                             const reg = e.target.reg.value;
                                             const capacity = parseInt(e.target.capacity.value);
-                                            const { error } = await supabase.from('fleet').insert([{ registration_number: reg, capacity: capacity, status: 'ACTIVE', tenant_id: 'kiungani-01' }]);
+                                            const provider = e.target.provider.value;
+                                            const tracker = e.target.tracker.value;
+                                            const { error } = await supabase.from('fleet').insert([{ 
+                                                registration_number: reg, 
+                                                capacity: capacity, 
+                                                status: 'ACTIVE', 
+                                                tenant_id: 'kiungani-01',
+                                                tracking_provider: provider,
+                                                tracker_id: tracker
+                                            }]);
                                             if (error) alert("Error adding vehicle: " + error.message);
                                             else setShowAddVehicle(false);
                                         }}
                                         className="mt-4 p-4 border border-slate-200 rounded-xl bg-slate-50"
                                     >
-                                        <input type="text" name="reg" placeholder="Reg Number (e.g. KCD 123X)" required className="w-full mb-3 p-2 border border-slate-300 rounded focus:ring-sky-500 focus:border-sky-500" />
-                                        <input type="number" name="capacity" placeholder="Capacity (e.g. 33)" required className="w-full mb-3 p-2 border border-slate-300 rounded focus:ring-sky-500 focus:border-sky-500" />
+                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                            <input type="text" name="reg" placeholder="Reg Number (e.g. KCD 123X)" required className="w-full p-2 border border-slate-300 rounded focus:ring-sky-500 focus:border-sky-500" />
+                                            <input type="number" name="capacity" placeholder="Capacity (e.g. 14)" required className="w-full p-2 border border-slate-300 rounded focus:ring-sky-500 focus:border-sky-500" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3 mb-4">
+                                            <div>
+                                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">GPS Source</label>
+                                                <select name="provider" className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-sky-500 focus:border-sky-500">
+                                                    <option value="DRIVER_APP">Driver Phone App</option>
+                                                    <option value="HARDWARE_TRACKER">Hardware Tracker API</option>
+                                                    <option value="SAFARICOM_LBS">Safaricom LBS (Cell Tower)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Tracker ID (If Hardware)</label>
+                                                <input type="text" name="tracker" placeholder="e.g. Cartrack UID" className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-sky-500 focus:border-sky-500" />
+                                            </div>
+                                        </div>
                                         <div className="flex gap-2">
                                             <button type="button" onClick={() => setShowAddVehicle(false)} className="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg font-bold hover:bg-slate-300 transition-colors">Cancel</button>
                                             <button type="submit" className="flex-1 bg-sky-600 text-white py-2 rounded-lg font-bold hover:bg-sky-500 transition-colors">Save Vehicle</button>
@@ -325,7 +370,8 @@ function AdminDashboard() {
                                                     onChange={async (e) => {
                                                         await supabase.from('active_trips').update({ vehicle_registration: e.target.value }).eq('id', trip.id);
                                                     }}
-                                                    className="border border-slate-200 rounded-lg p-1.5 text-xs font-bold text-slate-700 bg-white cursor-pointer shadow-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                                                    className={`border border-slate-200 rounded-lg p-1.5 text-xs font-bold text-slate-700 bg-white cursor-pointer shadow-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 ${trip.status === 'IN_TRANSIT' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    disabled={trip.status === 'IN_TRANSIT'}
                                                 >
                                                     {fleet.map(v => <option key={v.id} value={v.registration_number}>{v.registration_number}</option>)}
                                                 </select>
@@ -359,32 +405,50 @@ function AdminDashboard() {
                                 {/* Weekday Slots */}
                                 <div>
                                     <h3 className="font-black text-lg text-slate-800 mb-4 border-b border-slate-100 pb-2">Weekday Timetable</h3>
-                                    <div className="space-y-3">
-                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center hover:border-sky-300 transition-colors cursor-pointer">
-                                            <div className="flex gap-6 items-center">
-                                                <div className="font-black text-xl text-slate-800 w-24">05:30 AM</div>
-                                                <div className="flex gap-2">
-                                                    <span className="bg-white border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600">0727 699 222</span>
+                                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                        {scheduleSlots.length === 0 ? (
+                                            <p className="text-sm text-slate-500">No schedule slots configured.</p>
+                                        ) : (
+                                            scheduleSlots.filter(s => s.day_type === 'WEEKDAY').map(slot => (
+                                                <div key={slot.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center hover:border-sky-300 transition-colors cursor-pointer">
+                                                    <div className="flex gap-6 items-center">
+                                                        <div className="font-black text-xl text-slate-800 w-24">
+                                                            {new Date(`1970-01-01T${slot.departure_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                        <div className="flex gap-2 flex-wrap">
+                                                            {slot.driver_phones.map(phone => (
+                                                                <span key={phone} className="bg-white border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600">{phone}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <button className="text-sky-600 text-sm font-bold hover:underline">Edit</button>
                                                 </div>
-                                            </div>
-                                            <button className="text-sky-600 text-sm font-bold hover:underline">Edit</button>
-                                        </div>
-                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center hover:border-sky-300 transition-colors cursor-pointer">
-                                            <div className="flex gap-6 items-center">
-                                                <div className="font-black text-xl text-slate-800 w-24">06:00 AM</div>
-                                                <div className="flex gap-2">
-                                                    <span className="bg-white border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600">0711 580 275</span>
-                                                </div>
-                                            </div>
-                                            <button className="text-sky-600 text-sm font-bold hover:underline">Edit</button>
-                                        </div>
-                                        {/* Mocked for now to show the layout */}
-                                        <div className="text-center py-2">
-                                            <button className="text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors">Show 7 more slots...</button>
-                                        </div>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
-                                {/* Saturday/Sunday would go here similarly */}
+                                
+                                {/* Saturday Slots */}
+                                <div>
+                                    <h3 className="font-black text-lg text-slate-800 mb-4 border-b border-slate-100 pb-2 mt-8">Saturday Timetable</h3>
+                                    <div className="space-y-3">
+                                        {scheduleSlots.filter(s => s.day_type === 'SATURDAY').map(slot => (
+                                            <div key={slot.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center hover:border-sky-300 transition-colors cursor-pointer">
+                                                <div className="flex gap-6 items-center">
+                                                    <div className="font-black text-xl text-slate-800 w-24">
+                                                        {new Date(`1970-01-01T${slot.departure_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        {slot.driver_phones.map(phone => (
+                                                            <span key={phone} className="bg-white border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600">{phone}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <button className="text-sky-600 text-sm font-bold hover:underline">Edit</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="lg:col-span-1 space-y-6">
@@ -613,85 +677,17 @@ function AdminDashboard() {
                 )}
 
                 {activeTab === 'ANALYTICS' && (
-                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="mb-8 border-b pb-6 border-slate-100 flex justify-between items-center">
-                            <div>
-                                <h2 className="text-2xl font-black text-slate-800">System Analytics</h2>
-                                <p className="text-slate-500 mt-1">High-level visualization of operations and platform health.</p>
-                            </div>
-                            <a 
-                                href="/admin/report" 
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    window.history.pushState({}, '', '/admin/report');
-                                    window.dispatchEvent(new PopStateEvent('popstate'));
-                                }}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold px-4 py-2 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm flex items-center gap-2"
-                            >
-                                📄 Generate PDF Report
-                            </a>
+                    <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center flex flex-col items-center justify-center min-h-[500px]">
+                        <div className="w-20 h-20 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center text-4xl mb-6 shadow-inner">
+                            📈
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-xl">
-                                <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-1">Active Trips Today</p>
-                                <p className="text-4xl font-black text-emerald-900">142</p>
-                                <p className="text-sm text-emerald-700 mt-2 font-medium">+12% from yesterday</p>
-                            </div>
-                            <div className="bg-sky-50 border border-sky-200 p-6 rounded-xl">
-                                <p className="text-xs font-black text-sky-600 uppercase tracking-widest mb-1">Passenger Volume</p>
-                                <p className="text-4xl font-black text-sky-900">4,591</p>
-                                <p className="text-sm text-sky-700 mt-2 font-medium">Tracking via web app</p>
-                            </div>
-                            <div className="bg-amber-50 border border-amber-200 p-6 rounded-xl">
-                                <p className="text-xs font-black text-amber-600 uppercase tracking-widest mb-1">Ad Impressions</p>
-                                <p className="text-4xl font-black text-amber-900">12.4k</p>
-                                <p className="text-sm text-amber-700 mt-2 font-medium">Generating local revenue</p>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-2 bg-slate-50 rounded-xl border border-slate-200 p-6 h-64 flex flex-col items-center justify-center relative overflow-hidden">
-                                <p className="font-bold text-slate-500 mb-4 relative z-10">Peak Hours Visualization (Mock)</p>
-                                <div className="absolute bottom-0 left-0 w-full flex items-end justify-around px-8 gap-2 h-32 opacity-50">
-                                    <div className="w-full bg-sky-200 rounded-t-sm h-12"></div>
-                                    <div className="w-full bg-sky-300 rounded-t-sm h-24"></div>
-                                    <div className="w-full bg-sky-400 rounded-t-sm h-full"></div>
-                                    <div className="w-full bg-sky-300 rounded-t-sm h-16"></div>
-                                    <div className="w-full bg-sky-500 rounded-t-sm h-20"></div>
-                                    <div className="w-full bg-sky-600 rounded-t-sm h-full"></div>
-                                    <div className="w-full bg-sky-200 rounded-t-sm h-8"></div>
-                                </div>
-                            </div>
-                            
-                            {/* AI Analytical Agent */}
-                            <div className="lg:col-span-1 bg-indigo-50 border border-indigo-200 rounded-xl p-6 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] font-black px-3 py-1 uppercase tracking-widest rounded-bl-lg flex items-center gap-1">
-                                    <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span> AI Analyst
-                                </div>
-                                <h3 className="font-black text-lg text-indigo-900 mb-4 flex items-center gap-2">
-                                    <span>🧠</span> System Recommendations
-                                </h3>
-                                <div className="space-y-4">
-                                    {fleet.filter(v => v.status === 'MAINTENANCE').length > 0 && (
-                                        <div className="bg-white/80 p-3 rounded-lg border border-indigo-100 shadow-sm text-sm">
-                                            <p className="font-bold text-amber-600 mb-1">⚠️ Fleet Deficit</p>
-                                            <p className="text-slate-700 font-medium">You have {fleet.filter(v => v.status === 'MAINTENANCE').length} vehicle(s) in maintenance. Consider re-routing Kiserian Transit to maintain SLA.</p>
-                                        </div>
-                                    )}
-                                    {trips.length > fleet.length && fleet.length > 0 && (
-                                        <div className="bg-white/80 p-3 rounded-lg border border-indigo-100 shadow-sm text-sm">
-                                            <p className="font-bold text-red-600 mb-1">🚨 Capacity Warning</p>
-                                            <p className="text-slate-700 font-medium">There are more active trips ({trips.length}) than available vehicles ({fleet.length}). Expect significant delays.</p>
-                                        </div>
-                                    )}
-                                    <div className="bg-white/80 p-3 rounded-lg border border-indigo-100 shadow-sm text-sm">
-                                        <p className="font-bold text-emerald-600 mb-1">💡 Revenue Opportunity</p>
-                                        <p className="text-slate-700 font-medium">High passenger web-app activity detected. Consider unlocking an additional ad-slot for Local Businesses.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <h2 className="text-3xl font-black text-slate-800 mb-4">Unlock Advanced Analytics</h2>
+                        <p className="text-slate-500 text-lg max-w-lg mb-8">
+                            Upgrade to <span className="font-bold text-sky-600">TransitOS Pro</span> to access powerful visualizations, predictive maintenance AI, and real-time revenue tracking for your SACCO.
+                        </p>
+                        <button className="bg-sky-600 hover:bg-sky-500 text-white font-black px-8 py-4 rounded-xl shadow-lg shadow-sky-500/30 transition-all text-lg hover:-translate-y-1">
+                            Contact Sales to Upgrade
+                        </button>
                     </div>
                 )}
 
@@ -782,18 +778,48 @@ function AdminDashboard() {
                             <p className="text-slate-500 font-medium mb-8">Select current status for <strong className="text-slate-700 bg-slate-100 px-2 py-1 rounded">{editingVehicle.registration_number}</strong></p>
                             
                             <div className="space-y-4 mb-8">
-                                <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${newStatus === 'ACTIVE' ? 'border-emerald-500 bg-emerald-50 shadow-sm' : 'border-slate-100 hover:bg-slate-50'}`}>
-                                    <input type="radio" name="status" value="ACTIVE" checked={newStatus === 'ACTIVE'} onChange={(e) => setNewStatus(e.target.value)} className="w-5 h-5 text-emerald-600 focus:ring-emerald-500" />
+                                <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${editVehicleData.status === 'ACTIVE' ? 'border-emerald-500 bg-emerald-50 shadow-sm' : 'border-slate-100 hover:bg-slate-50'}`}>
+                                    <input type="radio" name="status" value="ACTIVE" checked={editVehicleData.status === 'ACTIVE'} onChange={(e) => setEditVehicleData({...editVehicleData, status: e.target.value})} className="w-5 h-5 text-emerald-600 focus:ring-emerald-500" />
                                     <span className="font-black text-slate-700 text-lg">ACTIVE</span>
                                 </label>
-                                <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${newStatus === 'MAINTENANCE' ? 'border-amber-500 bg-amber-50 shadow-sm' : 'border-slate-100 hover:bg-slate-50'}`}>
-                                    <input type="radio" name="status" value="MAINTENANCE" checked={newStatus === 'MAINTENANCE'} onChange={(e) => setNewStatus(e.target.value)} className="w-5 h-5 text-amber-600 focus:ring-amber-500" />
+                                <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${editVehicleData.status === 'MAINTENANCE' ? 'border-amber-500 bg-amber-50 shadow-sm' : 'border-slate-100 hover:bg-slate-50'}`}>
+                                    <input type="radio" name="status" value="MAINTENANCE" checked={editVehicleData.status === 'MAINTENANCE'} onChange={(e) => setEditVehicleData({...editVehicleData, status: e.target.value})} className="w-5 h-5 text-amber-600 focus:ring-amber-500" />
                                     <span className="font-black text-slate-700 text-lg">MAINTENANCE</span>
                                 </label>
-                                <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${newStatus === 'RETIRED' ? 'border-red-500 bg-red-50 shadow-sm' : 'border-slate-100 hover:bg-slate-50'}`}>
-                                    <input type="radio" name="status" value="RETIRED" checked={newStatus === 'RETIRED'} onChange={(e) => setNewStatus(e.target.value)} className="w-5 h-5 text-red-600 focus:ring-red-500" />
+                                <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${editVehicleData.status === 'RETIRED' ? 'border-red-500 bg-red-50 shadow-sm' : 'border-slate-100 hover:bg-slate-50'}`}>
+                                    <input type="radio" name="status" value="RETIRED" checked={editVehicleData.status === 'RETIRED'} onChange={(e) => setEditVehicleData({...editVehicleData, status: e.target.value})} className="w-5 h-5 text-red-600 focus:ring-red-500" />
                                     <span className="font-black text-slate-700 text-lg">RETIRED</span>
                                 </label>
+                            </div>
+
+                            <div className="mb-8 border-t border-slate-100 pt-6">
+                                <h4 className="font-bold text-slate-700 mb-4">Location Tracking Configuration</h4>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">GPS Source</label>
+                                        <select 
+                                            value={editVehicleData.tracking_provider} 
+                                            onChange={(e) => setEditVehicleData({...editVehicleData, tracking_provider: e.target.value})}
+                                            className="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold text-slate-700 focus:ring-sky-500 focus:border-sky-500"
+                                        >
+                                            <option value="DRIVER_APP">Driver Phone App (PWA)</option>
+                                            <option value="HARDWARE_TRACKER">Hardware Tracker (Cartrack/Tramigo)</option>
+                                            <option value="SAFARICOM_LBS">Safaricom LBS (Cell Tower)</option>
+                                        </select>
+                                    </div>
+                                    {editVehicleData.tracking_provider === 'HARDWARE_TRACKER' && (
+                                        <div className="animate-in fade-in duration-300">
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Hardware Device ID</label>
+                                            <input 
+                                                type="text" 
+                                                value={editVehicleData.tracker_id} 
+                                                onChange={(e) => setEditVehicleData({...editVehicleData, tracker_id: e.target.value})}
+                                                placeholder="e.g. UID123456789"
+                                                className="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-sky-500 focus:border-sky-500"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex gap-4">
