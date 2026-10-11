@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { withApiBaseUrl } from '../apiBaseUrl';
 
 function LandingPage() {
     const [formData, setFormData] = useState({ name: '', email: '', type: 'General', message: '' });
@@ -30,8 +31,7 @@ function LandingPage() {
         e.preventDefault();
         setStatus('sending');
         try {
-            const apiUrl = import.meta.env.DEV ? 'http://127.0.0.1:8001' : '';
-            const res = await fetch(`${apiUrl}/api/v1/inquiry`, {
+            const res = await fetch(withApiBaseUrl('/api/v1/inquiry'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)

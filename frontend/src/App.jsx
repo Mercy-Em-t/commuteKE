@@ -16,6 +16,7 @@ import ClerkPortal from './pages/ClerkPortal';
 import ScheduleDrawer from './components/ScheduleDrawer';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { supabase } from './supabaseClient';
+import { withApiBaseUrl } from './apiBaseUrl';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
@@ -149,8 +150,7 @@ function PassengerView() {
     
     setIsLoading(true);
     try {
-        const apiUrl = import.meta.env.DEV ? 'http://127.0.0.1:8001' : '';
-        const res = await fetch(`${apiUrl}/api/v1/subscribe/whatsapp`, {
+        const res = await fetch(withApiBaseUrl('/api/v1/subscribe/whatsapp'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

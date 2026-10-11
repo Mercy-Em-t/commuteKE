@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { withApiBaseUrl } from '../apiBaseUrl';
 
 const STATUS_COLORS = {
     SCHEDULED: 'bg-slate-100 text-slate-700',
@@ -132,8 +133,7 @@ function ClerkPortal() {
     const notifyPassengers = async (trip) => {
         setNotifyStatus(prev => ({ ...prev, [trip.id]: 'sending' }));
         try {
-            const apiUrl = import.meta.env.DEV ? 'http://127.0.0.1:8001' : '';
-            const res = await fetch(`${apiUrl}/api/v1/notify/broadcast`, {
+            const res = await fetch(withApiBaseUrl('/api/v1/notify/broadcast'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
