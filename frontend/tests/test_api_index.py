@@ -2,7 +2,8 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from fastapi.testclient import TestClient
 
@@ -11,8 +12,11 @@ class TransportApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         frontend_dir = Path(__file__).resolve().parents[1]
+        api_dir = frontend_dir / "api"
         if str(frontend_dir) not in sys.path:
             sys.path.insert(0, str(frontend_dir))
+        if str(api_dir) not in sys.path:
+            sys.path.insert(0, str(api_dir))
 
         from api.index import app
 
@@ -33,6 +37,50 @@ class TransportApiTests(unittest.TestCase):
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "operational")
+
+    def test_submit_inquiry_success(self):
+        payload = {
+            "name": "Mercy",
+            "email": "mercy@example.com",
+            "type": "General Inquiry",
+            "message": "Hello team",
+        }
+        mock_send = Mock(return_value={"success": True})
+        with patch.dict(sys.modules, {"mail_client": SimpleNamespace(send_inquiry_email=mock_send)}):
+            response = self.client.post("/api/v1/inquiry", json=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "success")
+        mock_send.assert_called_once()
+
+    def test_submit_inquiry_failure(self):
+        payload = {
+            "name": "Mercy",
+            "email": "mercy@example.com",
+            "type": "General Inquiry",
+            "message": "Hello team",
+        }
+        mock_send = Mock(return_value={"success": False})
+        with patch.dict(sys.modules, {"mail_client": SimpleNamespace(send_inquiry_email=mock_send)}):
+            response = self.client.post("/api/v1/inquiry", json=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "error")
+        mock_send.assert_called_once()
+
+    def test_subscribe_whatsapp_calls_template_sender(self):
+        payload = {
+            "phone_number": "254712345678",
+            "tenant_id": "kiungani-01",
+            "route_id": "kiungani-cbd",
+            "passenger_name": "Mercy",
+        }
+        with patch("whatsapp_client.send_whatsapp_template", return_value={"status": "mock"}) as mock_send:
+            response = self.client.post("/api/v1/subscribe/whatsapp", json=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "success")
+        mock_send.assert_called_once_with(
+            to_number="254712345678",
+            template_name="hello_world",
+        )
 
     def test_analytics_report_returns_requested_tenant(self):
         response = self.client.get("/api/v1/analytics/report?tenant_id=kiungani-01")
