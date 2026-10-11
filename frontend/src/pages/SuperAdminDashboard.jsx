@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { withApiBaseUrl } from '../apiBaseUrl';
 
-const API = import.meta.env.DEV ? 'http://127.0.0.1:8001' : '';
+const API = withApiBaseUrl;
 
 const TABS = ['saccos', 'identities', 'inquiries', 'analytics', 'audit'];
 
@@ -60,7 +61,7 @@ function SaccoForm({ onSuccess }) {
         setLoading(true);
         setMsg(null);
         try {
-            const res = await fetch(`${API}/api/v1/saccos`, {
+            const res = await fetch(API('/api/v1/saccos'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...form, fleet_count: Number(form.fleet_count) })
@@ -167,7 +168,7 @@ function BroadcastModal({ sacco, onClose }) {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch(`${API}/api/v1/saccos/broadcast`, {
+            const res = await fetch(API('/api/v1/saccos/broadcast'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sacco_id: sacco.id, ...form })
@@ -231,7 +232,7 @@ function SaccoTab() {
     const fetchSaccos = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API}/api/v1/saccos`);
+            const res = await fetch(API('/api/v1/saccos'));
             const data = await res.json();
             setSaccos(data.saccos || []);
         } catch {
@@ -245,7 +246,7 @@ function SaccoTab() {
 
     const updateStatus = async (sacco, newStatus) => {
         try {
-            await fetch(`${API}/api/v1/saccos/status`, {
+            await fetch(API('/api/v1/saccos/status'), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sacco_id: sacco.id, status: newStatus })
@@ -353,7 +354,7 @@ function IdentitiesTab() {
         const email = e.target.email.value;
         const role = e.target.role.value;
         try {
-            const res = await fetch(`${API}/api/v1/admin/provision`, {
+            const res = await fetch(API('/api/v1/admin/provision'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, role, tenant_id: 'kiungani-01' })

@@ -14,3 +14,10 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the Oxlint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+
+## Backend connection
+
+- `VITE_API_BASE_URL`: Optional absolute backend URL for frontend API calls (example: `https://your-backend.example.com`).
+- `VITE_API_PROXY_TARGET`: Optional Vite dev proxy target for `/api` requests (default: `http://127.0.0.1:8001`).
+
+When not set, local development keeps using `http://127.0.0.1:8001`, while production uses relative `/api` paths.

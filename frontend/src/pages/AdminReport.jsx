@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { withApiBaseUrl } from '../apiBaseUrl';
 
 export function AdminReport() {
     const [reportData, setReportData] = useState(null);
@@ -10,7 +11,7 @@ export function AdminReport() {
         // Fetch report from FastAPI backend
         const fetchReport = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8001/api/v1/analytics/report?tenant_id=kiungani-01');
+                const response = await fetch(withApiBaseUrl('/api/v1/analytics/report?tenant_id=kiungani-01'));
                 const data = await response.json();
                 setReportData(data);
                 setLoading(false);

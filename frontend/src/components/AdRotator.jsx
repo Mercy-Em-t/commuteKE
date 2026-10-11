@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { withApiBaseUrl } from '../apiBaseUrl';
 
 // Mock list of active sponsors from the DB
 const MOCK_SPONSORS = [
@@ -27,7 +28,7 @@ export function AdRotator() {
     useEffect(() => {
         const logImpression = async (sponsorId) => {
             try {
-                await fetch('http://127.0.0.1:8001/api/v1/analytics/impression', {
+                await fetch(withApiBaseUrl('/api/v1/analytics/impression'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

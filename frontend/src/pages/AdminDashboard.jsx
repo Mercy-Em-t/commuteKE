@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { withApiBaseUrl } from '../apiBaseUrl';
 
 function AdminDashboard() {
     const { userRole } = useAuth();
@@ -123,8 +124,7 @@ function AdminDashboard() {
         setInviteMsg(null);
         try {
             // Use Supabase Admin API via our backend to send magic link invite
-            const apiUrl = import.meta.env.DEV ? 'http://127.0.0.1:8001' : '';
-            const res = await fetch(`${apiUrl}/api/v1/staff/invite`, {
+            const res = await fetch(withApiBaseUrl('/api/v1/staff/invite'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: inviteEmail, role: inviteRole, tenant_id: 'kiungani-01' })
